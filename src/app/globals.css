@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --color-ink: #101314;
+  --color-paper: #f3f2f2;
+  --color-accent: #ec3013;
+  --color-accent-dark: #b8240d;
+  --color-on-accent: #f8f4f4;
+}
+
+@theme inline {
+  --color-ink: var(--color-ink);
+  --color-paper: var(--color-paper);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+  --color-on-accent: var(--color-on-accent);
+  --font-heading: var(--font-archivo);
+  --font-body: var(--font-archivo);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-body), system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading), system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+  }
+}
+
+@layer components {
+  /* uppercase mono label used throughout Inno Nomads' tools for kickers, meta, specs */
+  .label {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-weight: 500;
+    font-size: 10.5px;
+    line-height: 1.4;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+}
