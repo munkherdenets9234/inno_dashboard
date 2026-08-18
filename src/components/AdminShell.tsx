@@ -5,7 +5,11 @@ import { usePathname } from "next/navigation";
 import Mark from "@/components/Mark";
 import { logoutAction } from "@/app/(dashboard)/actions";
 
-const LINKS = [{ href: "/tenants", label: "Tenants" }];
+const LINKS = [
+  { href: "/tenants", label: "Tenants" },
+  { href: "/quotes", label: "Quotes" },
+  { href: "/packages", label: "Packages" },
+];
 
 export default function AdminShell({
   email,

@@ -75,3 +75,7 @@ export function apiPut<T>(path: string, body: unknown, token?: string) {
     token,
   );
 }
+
+export function apiDelete<T>(path: string, token?: string) {
+  return request<T>(path, { method: "DELETE" }, token);
+}

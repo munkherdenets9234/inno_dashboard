@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import { ActionButton } from "@/components/Button";
 import AdminField, { fieldInputClass } from "@/components/AdminField";
 import MultiLangField from "@/components/MultiLangField";
-import ImagesField from "@/components/ImagesField";
+import ImageUploadField from "@/components/ImageUploadField";
+import GalleryUploadField from "@/components/GalleryUploadField";
 import MetricsField from "@/components/MetricsField";
 import type { TenantProjectFormState } from "@/app/(dashboard)/tenants/actions";
 import type { Tenant } from "@/lib/types";
@@ -50,15 +51,18 @@ export default function TenantProjectForm({
         </AdminField>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <AdminField label="Cover image URL" htmlFor="cover_image_url">
-          <input
-            id="cover_image_url"
-            name="cover_image_url"
-            defaultValue={project?.cover_image?.url}
-            className={fieldInputClass}
-          />
-        </AdminField>
+      <AdminField label="Website URL" htmlFor="website_url" hint="the project's own live site — shown as live_url">
+        <input
+          id="website_url"
+          name="website_url"
+          type="url"
+          defaultValue={project?.website_url}
+          className={fieldInputClass}
+        />
+      </AdminField>
+
+      <div className="grid grid-cols-2 gap-4 items-start">
+        <ImageUploadField name="cover_image_url" label="Cover image" defaultValue={project?.cover_image?.url} />
         <AdminField label="Cover image caption" htmlFor="cover_image_caption">
           <input
             id="cover_image_caption"
@@ -69,7 +73,23 @@ export default function TenantProjectForm({
         </AdminField>
       </div>
 
-      <ImagesField name="images" label="Gallery images" defaultValue={project?.images} />
+      <div className="grid grid-cols-2 gap-4 items-start">
+        <ImageUploadField
+          name="admin_cover_url"
+          label="Admin cover (front-page/list image)"
+          defaultValue={project?.admin_cover?.url}
+        />
+        <AdminField label="Admin cover caption" htmlFor="admin_cover_caption">
+          <input
+            id="admin_cover_caption"
+            name="admin_cover_caption"
+            defaultValue={project?.admin_cover?.caption}
+            className={fieldInputClass}
+          />
+        </AdminField>
+      </div>
+
+      <GalleryUploadField name="images" label="Gallery images" defaultValue={project?.images} />
       <MetricsField name="metrics" label="Metrics" defaultValue={project?.metrics} />
 
       {state.error && <p className="label text-accent">{state.error}</p>}
