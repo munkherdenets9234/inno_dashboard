@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { safeLoad } from "@/lib/api/safe";
 import { getTenantById } from "@/lib/data/tenants";
 import { listPackages, listTenantPackages } from "@/lib/data/packages";
 import { assignPackageAction } from "../../actions";
@@ -17,9 +18,12 @@ export default async function TenantPackagesPage({ params }: { params: Promise<{
     throw err;
   }
 
-  const [assignedRes, catalogRes] = await Promise.all([listTenantPackages(id), listPackages()]);
-  const assigned = assignedRes.data;
-  const catalog = catalogRes.data;
+  const [assignedRes, catalogRes] = await Promise.all([
+    safeLoad(() => listTenantPackages(id)),
+    safeLoad(() => listPackages()),
+  ]);
+  const assigned = assignedRes.ok ? assignedRes.data.data : [];
+  const catalog = catalogRes.ok ? catalogRes.data.data : [];
   const assignedIds = new Set(assigned.map((p) => p.id));
   const unassignedOptions = catalog.filter((p) => !assignedIds.has(p.id));
 
@@ -30,7 +34,9 @@ export default async function TenantPackagesPage({ params }: { params: Promise<{
         <p className="label text-paper/35 mt-1">{tenant.slug} · Assigned packages</p>
       </div>
 
-      {assigned.length === 0 ? (
+      {!assignedRes.ok ? (
+        <p className="label text-accent">{assignedRes.message}</p>
+      ) : assigned.length === 0 ? (
         <p className="label text-paper/35 py-16 text-center border border-paper/10">No packages assigned yet.</p>
       ) : (
         <div className="border border-paper/10 overflow-x-auto">
@@ -61,7 +67,11 @@ export default async function TenantPackagesPage({ params }: { params: Promise<{
         </div>
       )}
 
-      <AssignPackageForm options={unassignedOptions} action={assignPackageAction.bind(null, id)} />
+      {!catalogRes.ok ? (
+        <p className="label text-accent">{catalogRes.message}</p>
+      ) : (
+        <AssignPackageForm options={unassignedOptions} action={assignPackageAction.bind(null, id)} />
+      )}
     </div>
   );
 }
