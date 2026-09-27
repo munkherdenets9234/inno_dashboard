@@ -48,7 +48,7 @@ export async function updateTenantProjectAction(
   };
 
   try {
-    await apiPut(`/platform/tenants/${id}/project`, body, token);
+    await apiPut(`/admin/tenants/${id}/project`, body, token);
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Failed to save." };
   }
@@ -72,7 +72,7 @@ export async function assignPackageAction(
   if (!packageId) return { error: "Choose a package to assign." };
 
   try {
-    await apiPost(`/platform/tenants/${tenantId}/packages`, { package_id: packageId }, token);
+    await apiPost(`/admin/tenants/${tenantId}/packages`, { plan_id: packageId }, token);
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Failed to assign package." };
   }
@@ -83,6 +83,6 @@ export async function assignPackageAction(
 
 export async function unassignPackageAction(tenantId: string, packageId: string) {
   const token = await requireToken();
-  await apiDelete(`/platform/tenants/${tenantId}/packages/${packageId}`, token);
+  await apiDelete(`/admin/tenants/${tenantId}/packages/${packageId}`, token);
   revalidatePath(`/tenants/${tenantId}/packages`);
 }

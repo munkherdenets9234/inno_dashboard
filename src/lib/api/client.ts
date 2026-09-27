@@ -1,8 +1,9 @@
-// Server-only client for digitalservice's platform-level API
-// (/platform/...). Reads need no auth at all; writes take a superadmin
-// Bearer token (see lib/auth/session.ts). There is no X-API-Key anywhere in
-// this app — that header identifies a tenant, and this app only ever
-// operates across tenants, never as one.
+// Server-only client for tenantcore's console API (/admin/...). Every route
+// under /admin requires a superadmin Bearer token (see lib/auth/session.ts) —
+// unlike digitalservice's old /platform/* surface, tenantcore has no
+// unauthenticated admin reads. There is no X-API-Key anywhere in this app —
+// that header identifies a tenant, and this app only ever operates across
+// tenants, never as one.
 
 export interface ApiEnvelope<T> {
   success: boolean;
@@ -21,7 +22,7 @@ export class ApiError extends Error {
 }
 
 function baseUrl() {
-  return process.env.API_URL ?? "http://localhost:8080/api/v1";
+  return process.env.API_URL ?? "http://localhost:8090/api/v1";
 }
 
 async function request<T>(

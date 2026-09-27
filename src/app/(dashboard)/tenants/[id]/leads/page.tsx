@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { safeLoad } from "@/lib/api/safe";
 import { getTenantById } from "@/lib/data/tenants";
 import { listTenantQuotes } from "@/lib/data/quotes";
-import { requireToken } from "@/lib/auth/session";
 import Pagination from "@/components/Pagination";
 import StatusBadge from "@/components/StatusBadge";
 import { ApiError } from "@/lib/api/client";
@@ -31,8 +30,7 @@ export default async function TenantLeadsPage({
     throw err;
   }
 
-  const token = await requireToken();
-  const result = await safeLoad(() => listTenantQuotes(id, page, limit, token));
+  const result = await safeLoad(() => listTenantQuotes(id, page, limit));
   const quotes = result.ok ? result.data.data : [];
   const meta = result.ok ? result.data.meta : undefined;
 

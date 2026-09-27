@@ -1,9 +1,9 @@
-// Session handling for the platform superadmin login (POST /platform/login).
-// The backend's Bearer token is a JWT it verifies on every request — we
-// don't re-verify it here, we just carry it in an httpOnly cookie so the
-// browser never sees it directly. A 401 from the API means the token is
-// gone/expired; callers should treat that as "not logged in" and send the
-// user to /login.
+// Session handling for the platform superadmin login (POST /admin/login).
+// The backend's Bearer token is Ed25519-signed and verified on every
+// request — we don't re-verify it here, we just carry it in an httpOnly
+// cookie so the browser never sees it directly. A 401 from the API means the
+// token is gone/expired; callers should treat that as "not logged in" and
+// send the user to /login.
 import { cookies } from "next/headers";
 import { apiPost } from "@/lib/api/client";
 
@@ -17,6 +17,8 @@ const COOKIE_MAX_AGE = 60 * 60 * 24; // 24h, matches the backend's default TOKEN
 
 interface LoginResponse {
   token: string;
+  // tenantcore also returns `user`, unused here — this app only needs the
+  // token to carry as a Bearer credential.
 }
 
 interface SessionCookie {
@@ -32,7 +34,7 @@ export class UnauthenticatedError extends Error {
 }
 
 export async function login(email: string, password: string) {
-  const { data } = await apiPost<LoginResponse>("/platform/login", { email, password });
+  const { data } = await apiPost<LoginResponse>("/admin/login", { email, password });
   const jar = await cookies();
   const value: SessionCookie = { token: data.token, email };
   jar.set(COOKIE_NAME, JSON.stringify(value), {

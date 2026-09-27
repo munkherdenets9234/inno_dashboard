@@ -1,22 +1,82 @@
 import { apiGet } from "@/lib/api/client";
-import type { Package } from "@/lib/types";
+import { requireToken } from "@/lib/auth/session";
+import type { LocaleList, LocaleText, Package } from "@/lib/types";
 
-// GET /platform/packages, /platform/packages/{id}, and
-// /platform/tenants/{id}/packages are all public reads — no Bearer token
-// needed. Only create/update/delete/assign/unassign require one.
+// tenantcore's admin Plan — see internal/api/view.Plan / PlanMarketing. This
+// app only ever edits the public pricing-card copy, never the entitlement
+// fields (modules/limits/capabilities/period_days) also present on a plan —
+// those stay untouched by whatever this app writes back.
+interface PlanResponse {
+  id: string;
+  slug: string;
+  name: string;
+  price: number;
+  currency: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  marketing?: {
+    name?: LocaleText;
+    tagline?: LocaleText;
+    billing_note?: LocaleText;
+    features?: LocaleList;
+    highlighted?: boolean;
+  };
+}
+
+// toPackage translates tenantcore's Plan (entitlement + marketing, in one
+// document) down to the Package shape this app has always worked with (pure
+// pricing-card content) — the same translation inno_frontend does on its own
+// public read, so both apps keep the interface they had before this repoint.
+function toPackage(p: PlanResponse): Package {
+  const m = p.marketing;
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: m?.name ?? {},
+    tagline: m?.tagline ?? {},
+    price: p.price,
+    currency: p.currency,
+    billing_note: m?.billing_note ?? {},
+    features: m?.features ?? {},
+    highlighted: m?.highlighted ?? false,
+    sort_order: p.sort_order,
+    is_active: p.is_active,
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  };
+}
+
+// GET /admin/plans requires the superadmin Bearer token on tenantcore —
+// unlike digitalservice's old public /platform/packages. See lib/data/tenants.ts
+// for why fetching it internally here is safe.
 //
-// The API returns `data: null` (not []) when a list is empty — coalesce so
+// The API returns `data: null` (not []) when the list is empty — coalesce so
 // callers can always treat the result as an array.
 export async function listPackages(page = 1, limit = 100) {
-  const res = await apiGet<Package[] | null>("/platform/packages", { page, limit });
-  return { ...res, data: res.data ?? [] };
+  const token = await requireToken();
+  const res = await apiGet<PlanResponse[] | null>("/admin/plans", { page, limit }, token);
+  return { ...res, data: (res.data ?? []).map(toPackage) };
 }
 
-export function getPackageById(id: string) {
-  return apiGet<Package>(`/platform/packages/${id}`);
+export async function getPackageById(id: string) {
+  const token = await requireToken();
+  const res = await apiGet<PlanResponse>(`/admin/plans/${id}`, undefined, token);
+  return { ...res, data: toPackage(res.data) };
 }
 
-export async function listTenantPackages(tenantId: string, page = 1, limit = 100) {
-  const res = await apiGet<Package[] | null>(`/platform/tenants/${tenantId}/packages`, { page, limit });
-  return { ...res, data: res.data ?? [] };
+// tenantcore's tenant-package assignment route returns which plan ids are
+// assigned, not full plan documents (see
+// internal/api/admin/private/showcase.go's ListPackages) — resolve them
+// against the full plan list rather than adding a second response shape for
+// callers to handle.
+export async function listTenantPackages(tenantId: string) {
+  const token = await requireToken();
+  const [assigned, all] = await Promise.all([
+    apiGet<{ plan_ids: string[] }>(`/admin/tenants/${tenantId}/packages`, undefined, token),
+    listPackages(1, 200),
+  ]);
+  const ids = new Set(assigned.data.plan_ids);
+  return { data: all.data.filter((p) => ids.has(p.id)) };
 }

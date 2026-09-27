@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { apiPost, apiPut, apiDelete, ApiError } from "@/lib/api/client";
 import { requireToken } from "@/lib/auth/session";
-import type { LocaleList, LocaleText, Package } from "@/lib/types";
+import type { LocaleList, LocaleText } from "@/lib/types";
 
 export interface PackageFormState {
   error?: string;
@@ -21,18 +21,36 @@ function jsonField<T>(formData: FormData, name: string): T | undefined {
   }
 }
 
+// tenantcore's Plan carries the entitlement fields (modules/limits/
+// capabilities/period_days) alongside the pricing-card content this app
+// edits (see internal/models/billing.go's Plan.Marketing). This app only
+// ever writes the marketing half; the entitlement fields are simply absent
+// from the request body and left at whatever they already were (a partial
+// PUT) or their zero value (a fresh plan with no module gate — the
+// documented "unenforced" default).
+//
+// Plan.name (top level) is console-facing text, distinct from
+// marketing.name (the bilingual public name) — see billing.go's comment on
+// why the two are separate fields. This app has no console-only name field
+// of its own, so it reuses the English marketing name, falling back to the
+// slug, exactly like cmd/migrate-from-digitalservice's own planName() does.
 function bodyFromForm(formData: FormData) {
+  const slug = String(formData.get("slug") ?? "").trim();
+  const name = jsonField<LocaleText>(formData, "name") ?? {};
   return {
-    slug: String(formData.get("slug") ?? "").trim(),
-    name: jsonField<LocaleText>(formData, "name") ?? {},
-    tagline: jsonField<LocaleText>(formData, "tagline") ?? {},
+    slug,
+    name: name.en || name.mn || slug,
     price: Number(formData.get("price") ?? 0),
     currency: String(formData.get("currency") ?? "").trim(),
-    billing_note: jsonField<LocaleText>(formData, "billing_note") ?? {},
-    features: jsonField<LocaleList>(formData, "features") ?? {},
-    highlighted: formData.get("highlighted") === "on",
     sort_order: Number(formData.get("sort_order") ?? 0),
     is_active: formData.get("is_active") === "on",
+    marketing: {
+      name,
+      tagline: jsonField<LocaleText>(formData, "tagline") ?? {},
+      billing_note: jsonField<LocaleText>(formData, "billing_note") ?? {},
+      features: jsonField<LocaleList>(formData, "features") ?? {},
+      highlighted: formData.get("highlighted") === "on",
+    },
   };
 }
 
@@ -43,10 +61,10 @@ export async function createPackageAction(
   const token = await requireToken();
   const body = bodyFromForm(formData);
   if (!body.slug) return { error: "Slug is required." };
-  if (!body.name.en) return { error: "Name (EN) is required." };
+  if (!body.marketing.name.en) return { error: "Name (EN) is required." };
 
   try {
-    await apiPost<Package>("/platform/packages", body, token);
+    await apiPost("/admin/plans", body, token);
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Failed to create package." };
   }
@@ -64,7 +82,7 @@ export async function updatePackageAction(
   const body = bodyFromForm(formData);
 
   try {
-    await apiPut<Package>(`/platform/packages/${id}`, body, token);
+    await apiPut(`/admin/plans/${id}`, body, token);
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Failed to save package." };
   }
@@ -76,7 +94,7 @@ export async function updatePackageAction(
 
 export async function deletePackageAction(id: string) {
   const token = await requireToken();
-  await apiDelete(`/platform/packages/${id}`, token);
+  await apiDelete(`/admin/plans/${id}`, token);
   revalidatePath("/packages");
   redirect("/packages");
 }

@@ -75,10 +75,10 @@ export default function QuoteRow({ quote, tenantName }: { quote: Quote; tenantNa
                   <span className="label text-paper/35 block">Timeline</span>
                   {quote.timeline || "—"}
                 </div>
-                {quote.package_slug && (
+                {quote.plan_slug && (
                   <div>
                     <span className="label text-paper/35 block">Package</span>
-                    {quote.package_slug}
+                    {quote.plan_slug}
                   </div>
                 )}
                 {quote.lastEditedBy && (
