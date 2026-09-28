@@ -1,6 +1,6 @@
 "use client";
 
-import { deletePackageAction } from "@/app/(dashboard)/packages/actions";
+import { deletePackageAction } from "@/app/admin/(console)/packages/actions";
 
 export default function DeletePackageButton({ id }: { id: string }) {
   const boundDelete = deletePackageAction.bind(null, id);

@@ -1,7 +1,7 @@
-// Platform-level (superadmin) models — digitalservice's internal/models/
-// tenant.go and tenant_detail.go. This app only ever talks to /platform/*
-// routes, so there's no tenant-scoped concept (X-API-Key, tenant admin
-// roles) anywhere in here.
+// Platform-level (superadmin) models — tenantcore's internal/models/showcase.go
+// and internal/api/view. This app only ever talks to /admin/* routes, so
+// there's no tenant-scoped concept (X-API-Key, tenant admin roles) anywhere
+// in here.
 
 export type LocaleText = { en?: string; mn?: string };
 export type LocaleList = { en?: string[]; mn?: string[] };
@@ -54,8 +54,8 @@ export type QuoteStatus = "new" | "contacted" | "quoted" | "closed";
 // A "request a quote" lead. Most have no tenant relationship at all — a
 // prospect inquiring before ever signing up — so tenant_id is optional,
 // present only when the lead came through an existing tenant's own
-// storefront. GET /platform/quotes lists every quote across the platform,
-// tenant-linked and tenant-less alike; PUT /platform/quotes/{id}/status
+// storefront. GET /admin/quotes lists every quote across the platform,
+// tenant-linked and tenant-less alike; PUT /admin/quotes/{id}/status
 // (superadmin) is the only way to act on a tenant-less lead.
 export interface Quote {
   id: string;
@@ -64,7 +64,7 @@ export interface Quote {
   email: string;
   phone?: string;
   company_name?: string;
-  package_slug?: string;
+  plan_slug?: string;
   budget?: string;
   timeline?: string;
   message?: string;
@@ -75,9 +75,11 @@ export interface Quote {
 }
 
 // One pricing tier in the platform's own global price-list catalog —
-// managed centrally via /platform/packages, not per-tenant. Which tenants
-// show a given package on their own storefront is a separate many-to-many
-// assignment (see /platform/tenants/{id}/packages).
+// managed centrally via /admin/plans, not per-tenant (tenantcore calls the
+// underlying record a Plan; this app only ever edits its public pricing-card
+// content, translated at the fetch boundary in lib/data/packages.ts). Which
+// tenants show a given package on their own storefront is a separate
+// many-to-many assignment (see /admin/tenants/{id}/packages).
 export interface Package {
   id: string;
   slug: string;

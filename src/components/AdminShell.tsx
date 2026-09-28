@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Mark from "@/components/Mark";
-import { logoutAction } from "@/app/(dashboard)/actions";
+import { logoutAction } from "@/app/admin/(console)/actions";
 
 const LINKS = [
-  { href: "/tenants", label: "Tenants" },
-  { href: "/quotes", label: "Quotes" },
-  { href: "/packages", label: "Packages" },
+  { href: "/admin/tenants", label: "Tenants" },
+  { href: "/admin/quotes", label: "Quotes" },
+  { href: "/admin/packages", label: "Packages" },
+  { href: "/admin/content", label: "Site copy" },
 ];
 
 export default function AdminShell({
@@ -23,7 +24,7 @@ export default function AdminShell({
   return (
     <div className="min-h-screen flex bg-ink text-paper">
       <aside className="w-56 shrink-0 border-r border-paper/10 flex flex-col gap-8 p-6">
-        <Link href="/tenants" className="flex items-center gap-2.5">
+        <Link href="/admin/tenants" className="flex items-center gap-2.5">
           <Mark size={16} className="text-paper" />
           <span className="font-heading font-extrabold text-sm tracking-tight">ADMIN</span>
         </Link>

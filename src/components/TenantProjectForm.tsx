@@ -7,7 +7,7 @@ import MultiLangField from "@/components/MultiLangField";
 import ImageUploadField from "@/components/ImageUploadField";
 import GalleryUploadField from "@/components/GalleryUploadField";
 import MetricsField from "@/components/MetricsField";
-import type { TenantProjectFormState } from "@/app/(dashboard)/tenants/actions";
+import type { TenantProjectFormState } from "@/app/admin/(console)/tenants/actions";
 import type { Tenant } from "@/lib/types";
 
 export default function TenantProjectForm({

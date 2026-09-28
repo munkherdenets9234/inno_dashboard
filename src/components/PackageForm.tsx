@@ -5,7 +5,7 @@ import { ActionButton } from "@/components/Button";
 import AdminField, { fieldInputClass } from "@/components/AdminField";
 import MultiLangField from "@/components/MultiLangField";
 import MultiLangListField from "@/components/MultiLangListField";
-import type { PackageFormState } from "@/app/(dashboard)/packages/actions";
+import type { PackageFormState } from "@/app/admin/(console)/packages/actions";
 import type { Package } from "@/lib/types";
 
 export default function PackageForm({

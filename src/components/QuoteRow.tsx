@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import StatusBadge from "@/components/StatusBadge";
 import { ActionButton } from "@/components/Button";
-import { updateQuoteStatusAction } from "@/app/(dashboard)/quotes/actions";
+import { updateQuoteStatusAction } from "@/app/admin/(console)/quotes/actions";
 import type { Quote, QuoteStatus } from "@/lib/types";
 
 const TRANSITIONS: { to: QuoteStatus; label: string }[] = [
@@ -75,10 +75,10 @@ export default function QuoteRow({ quote, tenantName }: { quote: Quote; tenantNa
                   <span className="label text-paper/35 block">Timeline</span>
                   {quote.timeline || "—"}
                 </div>
-                {quote.package_slug && (
+                {quote.plan_slug && (
                   <div>
                     <span className="label text-paper/35 block">Package</span>
-                    {quote.package_slug}
+                    {quote.plan_slug}
                   </div>
                 )}
                 {quote.lastEditedBy && (
