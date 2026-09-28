@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import StatusBadge from "@/components/StatusBadge";
 import { ActionButton } from "@/components/Button";
-import { updateQuoteStatusAction } from "@/app/(dashboard)/quotes/actions";
+import { updateQuoteStatusAction } from "@/app/admin/(console)/quotes/actions";
 import type { Quote, QuoteStatus } from "@/lib/types";
 
 const TRANSITIONS: { to: QuoteStatus; label: string }[] = [

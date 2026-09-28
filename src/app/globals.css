@@ -5,7 +5,25 @@
   --color-paper: #f3f2f2;
   --color-accent: #ec3013;
   --color-accent-dark: #b8240d;
+  /* stays light regardless of theme — accent surfaces (buttons, CTA bands)
+     always need light text on top of the saturated orange-red */
   --color-on-accent: #f8f4f4;
+}
+
+/* light theme — reuses the wireframe's own light-direction palette (1a/1b/1c)
+   rather than a blind color inversion, so it stays visually authentic */
+html[data-theme="light"] {
+  --color-ink: #f3f2f2;
+  --color-paper: #201e1d;
+}
+
+/* The console is dark-only. It shares this stylesheet with the public site,
+   which a visitor can flip to light — and that choice is stored per browser,
+   so without this an operator who toggled the theme on the marketing site
+   would find the console light too. It has never been designed for that. */
+[data-console] {
+  --color-ink: #101314;
+  --color-paper: #f3f2f2;
 }
 
 @theme inline {
@@ -18,15 +36,29 @@
   --font-body: var(--font-archivo);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer base {
   * {
     box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
     background: var(--color-ink);
     color: var(--color-paper);
     font-family: var(--font-body), system-ui, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1, h2, h3, h4 {
@@ -37,8 +69,13 @@
   }
 }
 
+/* Custom classes live in @layer components (not left "unlayered") so that
+   Tailwind utility classes — e.g. `absolute` on a `.ticked` box — still win
+   the cascade as expected. Unlayered CSS always beats layered CSS regardless
+   of source order or specificity, which silently broke `position: absolute`
+   on any element that also had `.ticked` applied. */
 @layer components {
-  /* uppercase mono label used throughout Inno Nomads' tools for kickers, meta, specs */
+  /* uppercase mono label used throughout the wireframe for kickers, meta, specs */
   .label {
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-weight: 500;
@@ -46,5 +83,63 @@
     line-height: 1.4;
     letter-spacing: 0.09em;
     text-transform: uppercase;
+  }
+
+  /* large decorative wordmark sitting behind hero copy at low opacity */
+  .ghost-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    user-select: none;
+    font-family: var(--font-heading), system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: color-mix(in srgb, var(--color-paper) 6%, transparent);
+    white-space: nowrap;
+    font-size: clamp(64px, 12vw, 180px);
+  }
+
+  /* corner-ticked frame: hairline border with four small square ticks at the corners */
+  .ticked {
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  }
+  .ticked::before,
+  .ticked::after,
+  .ticked .tick-tl,
+  .ticked .tick-tr {
+    content: "";
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: var(--color-paper);
+  }
+  .ticked::before { left: -3px; top: -3px; }
+  .ticked::after { right: -3px; bottom: -3px; }
+  .ticked .tick-tl { right: -3px; top: -3px; }
+  .ticked .tick-tr { left: -3px; bottom: -3px; }
+  .ticked-accent::before,
+  .ticked-accent::after,
+  .ticked-accent .tick-tl,
+  .ticked-accent .tick-tr {
+    background: var(--color-accent);
+  }
+
+  /* diagonal texture used to mark image/photo placeholders */
+  .photo-plate {
+    background-image: repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--color-paper) 10%, transparent) 0 6px,
+      transparent 6px 14px
+    );
+  }
+
+  /* mask wrapper for line-by-line reveal animations */
+  .reveal-mask {
+    display: block;
+    overflow: hidden;
   }
 }

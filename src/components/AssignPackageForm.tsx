@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { ActionButton } from "@/components/Button";
 import { fieldInputClass } from "@/components/AdminField";
-import type { AssignPackageFormState } from "@/app/(dashboard)/tenants/actions";
+import type { AssignPackageFormState } from "@/app/admin/(console)/tenants/actions";
 import type { Package } from "@/lib/types";
 
 export default function AssignPackageForm({

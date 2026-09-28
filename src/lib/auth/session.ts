@@ -13,7 +13,13 @@ import { apiPost } from "@/lib/api/client";
 // apps sharing a cookie name on the same host would silently read each
 // other's session.
 const COOKIE_NAME = "digitalservice_platform_session";
-const COOKIE_MAX_AGE = 60 * 60 * 24; // 24h, matches the backend's default TOKEN_EXPIRY_HOURS
+// Deliberately LONGER than tenantcore's TOKEN_TTL (1h in this deployment,
+// capped at 24h). The cookie is not the authority on whether the session is
+// alive — the token inside it is, and tenantcore decides that. When the
+// token expires first, the next API call 401s and lib/api/client.ts clears
+// this cookie and sends the user to /login, so the mismatch is self-healing
+// rather than something these two numbers have to be kept in step about.
+const COOKIE_MAX_AGE = 60 * 60 * 24;
 
 interface LoginResponse {
   token: string;

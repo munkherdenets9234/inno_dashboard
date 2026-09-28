@@ -1,6 +1,6 @@
 "use client";
 
-import { unassignPackageAction } from "@/app/(dashboard)/tenants/actions";
+import { unassignPackageAction } from "@/app/admin/(console)/tenants/actions";
 
 export default function UnassignPackageButton({ tenantId, packageId }: { tenantId: string; packageId: string }) {
   const boundUnassign = unassignPackageAction.bind(null, tenantId, packageId);
