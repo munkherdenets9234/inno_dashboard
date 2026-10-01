@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { apiDelete, apiPost, apiPut, ApiError } from "@/lib/api/client";
 import { requireToken } from "@/lib/auth/session";
+import { validBillingDay } from "@/lib/subscription";
 import type { LocaleText, ProjectImage, ProjectMetric } from "@/lib/types";
 
 export interface TenantProjectFormState {
@@ -132,9 +133,22 @@ export async function subscribeAction(
 ): Promise<SubscriptionFormState> {
   const planId = planIdOf(formData);
   if (!planId) return { error: "Choose a plan." };
+
+  // Optional: left out, tenantcore applies the default (the 20th).
+  const rawDay = String(formData.get("billing_day") ?? "").trim();
+  const billingDay = rawDay === "" ? undefined : Number(rawDay);
+  if (billingDay !== undefined && !validBillingDay(billingDay)) {
+    return { error: "Billing day must be a whole number from 1 to 28." };
+  }
+
   return runSubscriptionAction(
     tenantId,
-    (token) => apiPost(`/admin/tenants/${tenantId}/subscription`, { plan_id: planId }, token),
+    (token) =>
+      apiPost(
+        `/admin/tenants/${tenantId}/subscription`,
+        billingDay === undefined ? { plan_id: planId } : { plan_id: planId, billing_day: billingDay },
+        token,
+      ),
     "Failed to create the subscription.",
   );
 }
@@ -176,3 +190,20 @@ export const cancelSubscriptionAction: SubscriptionAction = async (tenantId) => 
     "Failed to cancel the subscription.",
   );
 };
+
+// Changes the day future periods end on. Never moves the current period end:
+// moving it earlier would silently take days the tenant already paid for, and
+// Renew is how the current end moves.
+export async function setBillingDayAction(
+  tenantId: string,
+  _prev: SubscriptionFormState,
+  formData: FormData,
+): Promise<SubscriptionFormState> {
+  const day = Number(String(formData.get("billing_day") ?? "").trim());
+  if (!validBillingDay(day)) return { error: "Billing day must be a whole number from 1 to 28." };
+  return runSubscriptionAction(
+    tenantId,
+    (token) => apiPut(`/admin/tenants/${tenantId}/subscription/billing-day`, { billing_day: day }, token),
+    "Failed to change the billing day.",
+  );
+}

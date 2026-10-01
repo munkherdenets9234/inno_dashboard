@@ -107,6 +107,9 @@ export interface Subscription {
   tenant_id: string;
   plan_id: string;
   status: SubscriptionStatus;
+  // The day of the month it renews on (1 to 28). Always present: the API reports
+  // the day the system will act on, so a subscription predating the field reads 20.
+  billing_day: number;
   current_period_start: string;
   current_period_end: string;
   canceled_at?: string | null;
