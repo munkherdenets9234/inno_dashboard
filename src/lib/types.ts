@@ -96,3 +96,26 @@ export interface Package {
   updated_at: string;
   lastEditedBy?: string;
 }
+
+export type SubscriptionStatus = "active" | "trialing" | "past_due" | "canceled";
+
+// A tenant's subscription as GET /admin/tenants/{id}/subscription returns it.
+// `plan` is null (or absent) when the plan was deleted out from under a live
+// subscription: the billing state is still true and still needs to render.
+export interface Subscription {
+  id: string;
+  tenant_id: string;
+  plan_id: string;
+  status: SubscriptionStatus;
+  current_period_start: string;
+  current_period_end: string;
+  canceled_at?: string | null;
+  plan?: {
+    id: string;
+    slug: string;
+    name: string;
+    price: number;
+    currency: string;
+    period_days: number;
+  } | null;
+}
