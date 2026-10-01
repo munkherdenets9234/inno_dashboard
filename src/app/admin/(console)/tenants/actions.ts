@@ -72,7 +72,11 @@ export async function assignPackageAction(
   if (!packageId) return { error: "Choose a package to assign." };
 
   try {
-    await apiPost(`/admin/tenants/${tenantId}/packages`, { plan_id: packageId }, token);
+    // package_id, not plan_id. tenantcore's assignment endpoint keeps the
+    // console's own vocabulary ("package") on the wire, while its
+    // subscription endpoints say plan_id — the two handlers disagree on
+    // purpose, so this is not a typo to "tidy" into matching.
+    await apiPost(`/admin/tenants/${tenantId}/packages`, { package_id: packageId }, token);
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Failed to assign package." };
   }

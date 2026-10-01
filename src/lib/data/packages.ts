@@ -66,17 +66,17 @@ export async function getPackageById(id: string) {
   return { ...res, data: toPackage(res.data) };
 }
 
-// tenantcore's tenant-package assignment route returns which plan ids are
-// assigned, not full plan documents (see
-// internal/api/admin/private/showcase.go's ListPackages) — resolve them
-// against the full plan list rather than adding a second response shape for
-// callers to handle.
+// tenantcore's tenant-package route returns the assigned plans as full Plan
+// documents (docs/api.json: "Which pricing cards a tenant displays"), so the
+// response is used as-is.
+//
+// This used to read `{ plan_ids }` and resolve them against the full list.
+// That shape never existed on the wire, and the failure was silent:
+// `new Set(undefined)` is an empty set, so the page said nothing was assigned
+// even immediately after a successful assign.
 export async function listTenantPackages(tenantId: string) {
   const token = await requireToken();
-  const [assigned, all] = await Promise.all([
-    apiGet<{ plan_ids: string[] }>(`/admin/tenants/${tenantId}/packages`, undefined, token),
-    listPackages(1, 200),
-  ]);
-  const ids = new Set(assigned.data.plan_ids);
-  return { data: all.data.filter((p) => ids.has(p.id)) };
+  const res = await apiGet<PlanResponse[] | null>(`/admin/tenants/${tenantId}/packages`, undefined, token);
+  // The API serialises an empty result as null, not [].
+  return { ...res, data: (res.data ?? []).map(toPackage) };
 }
