@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { apiDelete, apiPost, apiPut, ApiError } from "@/lib/api/client";
+import { dsRequest } from "@/lib/api/digitalservice";
 import { requireToken } from "@/lib/auth/session";
 import { validBillingDay } from "@/lib/subscription";
 import type { LocaleText, ProjectImage, ProjectMetric } from "@/lib/types";
@@ -206,4 +207,75 @@ export async function setBillingDayAction(
     (token) => apiPut(`/admin/tenants/${tenantId}/subscription/billing-day`, { billing_day: day }, token),
     "Failed to change the billing day.",
   );
+}
+
+// ── Detail page: key rotation and admin password reset ────────────────────
+//
+// A raw key exists only in the returned state (shown once by the page). It is
+// never logged, stored, redirected with or put in a URL.
+
+export interface RotateKeyState {
+  error?: string;
+  newKey?: string;
+}
+
+export async function rotateTenantKeyAction(
+  tenantId: string,
+): Promise<RotateKeyState> {
+  const token = await requireToken();
+  let newKey: string;
+  try {
+    const res = await apiPost<{ api_key: string }>(`/admin/tenants/${tenantId}/rotate-key`, {}, token);
+    newKey = res.data.api_key;
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Failed to rotate the key." };
+  }
+  revalidatePath(`/admin/tenants/${tenantId}`);
+  return { newKey };
+}
+
+export async function rotateServiceKeyAction(
+  serviceClientId: string,
+  tenantId: string,
+): Promise<RotateKeyState> {
+  const token = await requireToken();
+  let newKey: string;
+  try {
+    const res = await apiPost<{ service_key: string }>(
+      `/admin/service-clients/${serviceClientId}/rotate`,
+      {},
+      token,
+    );
+    newKey = res.data.service_key;
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Failed to rotate the key." };
+  }
+  revalidatePath(`/admin/tenants/${tenantId}`);
+  return { newKey };
+}
+
+export interface ResetPasswordState {
+  error?: string;
+  sent?: boolean;
+}
+
+export async function resetAdminPasswordAction(
+  tenantId: string,
+  userId: string,
+): Promise<ResetPasswordState> {
+  const token = await requireToken();
+  try {
+    await dsRequest(
+      "POST",
+      `/platform/tenants/${encodeURIComponent(tenantId)}/admin-users/${encodeURIComponent(userId)}/reset-password`,
+      token,
+    );
+  } catch (err) {
+    if (err instanceof ApiError) {
+      if (err.status === 503) return { error: "Email isn't set up on this server" };
+      return { error: err.message };
+    }
+    return { error: "Failed to send the reset code." };
+  }
+  return { sent: true };
 }
