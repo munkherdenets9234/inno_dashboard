@@ -16,3 +16,30 @@ export async function getTenantSubscription(tenantId: string): Promise<Subscript
     throw err;
   }
 }
+
+// A plan as the Subscription page's picker needs it. Read from /admin/plans
+// directly rather than through lib/data/packages: that reader translates Plan
+// into the older Package shape, which drops period_days, and the page needs it
+// to show the end date a choice WOULD produce before it is submitted.
+export interface PlanOption {
+  id: string;
+  slug: string;
+  name: string;
+  price: number;
+  currency: string;
+  period_days: number;
+}
+
+// Only active plans: tenantcore refuses a subscription on an inactive one, so
+// offering it would be offering a choice guaranteed to fail.
+export async function listPlanOptions(): Promise<PlanOption[]> {
+  const token = await requireToken();
+  const res = await apiGet<Array<PlanOption & { is_active: boolean }> | null>(
+    "/admin/plans",
+    { page: 1, limit: 200 },
+    token,
+  );
+  return (res.data ?? [])
+    .filter((p) => p.is_active)
+    .map((p) => ({ id: p.id, slug: p.slug, name: p.name, price: p.price, currency: p.currency, period_days: p.period_days }));
+}
