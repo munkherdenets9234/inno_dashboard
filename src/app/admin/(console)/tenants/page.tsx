@@ -74,6 +74,12 @@ export default async function TenantsPage({
                       >
                         Manage packages
                       </Link>
+                      <Link
+                        href={`/admin/tenants/${t.id}/subscription`}
+                        className="label text-paper/55 hover:text-accent transition-colors"
+                      >
+                        Subscription
+                      </Link>
                     </div>
                   </td>
                 </tr>
