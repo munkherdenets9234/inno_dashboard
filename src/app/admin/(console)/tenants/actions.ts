@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { apiDelete, apiPost, apiPut, ApiError } from "@/lib/api/client";
 import { dsRequest } from "@/lib/api/digitalservice";
 import { requireToken } from "@/lib/auth/session";
@@ -228,6 +229,7 @@ export async function rotateTenantKeyAction(
     const res = await apiPost<{ api_key: string }>(`/admin/tenants/${tenantId}/rotate-key`, {}, token);
     newKey = res.data.api_key;
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof ApiError ? err.message : "Failed to rotate the key." };
   }
   revalidatePath(`/admin/tenants/${tenantId}`);
@@ -248,6 +250,7 @@ export async function rotateServiceKeyAction(
     );
     newKey = res.data.service_key;
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof ApiError ? err.message : "Failed to rotate the key." };
   }
   revalidatePath(`/admin/tenants/${tenantId}`);
@@ -271,6 +274,7 @@ export async function resetAdminPasswordAction(
       token,
     );
   } catch (err) {
+    unstable_rethrow(err);
     if (err instanceof ApiError) {
       if (err.status === 503) return { error: "Email isn't set up on this server" };
       return { error: err.message };
