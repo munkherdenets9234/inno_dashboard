@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, unstable_rethrow } from "next/navigation";
 import { ApiError } from "@/lib/api/client";
-import { safeLoad } from "@/lib/api/safe";
+import { apiErrorMessage, safeLoad, type SafeResult } from "@/lib/api/safe";
 import { getTenantById } from "@/lib/data/tenants";
 import { listServiceClients, listTenantAdminUsers } from "@/lib/data/tenant-detail";
 import { ResetPasswordControl, ServiceKeyRotate, TenantKeyPanel } from "@/components/TenantDetailPanels";
@@ -9,6 +9,24 @@ import { resetAdminPasswordAction, rotateServiceKeyAction, rotateTenantKeyAction
 const th = "label text-paper/35 font-normal px-4 py-3";
 const td = "px-4 py-3 align-top";
 
+// safeLoad returns only a message string, so detect the 404 here. A 401 keeps
+// the ApiError message from dsRequest, shown verbatim like the 404 text.
+async function loadAdmins(id: string): Promise<SafeResult<Awaited<ReturnType<typeof listTenantAdminUsers>>>> {
+  try {
+    return { ok: true, data: await listTenantAdminUsers(id) };
+  } catch (err) {
+    unstable_rethrow(err);
+    if (err instanceof ApiError && err.status === 404) {
+      return {
+        ok: false,
+        message: "digitalservice has TENANTCORE_PUBLIC_KEY unset, so tenant admin accounts are unavailable",
+      };
+    }
+    if (err instanceof ApiError && err.status === 401) return { ok: false, message: err.message };
+    return { ok: false, message: apiErrorMessage(err) };
+  }
+}
+
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -16,13 +34,14 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   try {
     tenant = (await getTenantById(id)).data;
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404) notFound();
+    if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
     throw err;
   }
 
   // Each source has its own safeLoad so one failing source degrades only its section.
+  // A 404 here means digitalservice's route group is off (TENANTCORE_PUBLIC_KEY unset).
   const [adminsRes, clientsRes] = await Promise.all([
-    safeLoad(() => listTenantAdminUsers(id)),
+    loadAdmins(id),
     safeLoad(() => listServiceClients()),
   ]);
 
