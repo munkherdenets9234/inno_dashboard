@@ -3,7 +3,6 @@ import { requireToken } from "@/lib/auth/session";
 import { listServiceClients } from "@/lib/data/platform";
 import ConfirmAction from "@/components/ConfirmAction";
 import NewServiceClientForm from "@/components/NewServiceClientForm";
-import SecretOnce from "@/components/SecretOnce";
 import { createServiceClientAction, revokeServiceClientAction } from "../actions";
 
 function formatDate(iso?: string) {
@@ -17,13 +16,7 @@ function formatDate(iso?: string) {
   });
 }
 
-export default async function ServiceClientsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ new_key?: string }>;
-}) {
-  const { new_key: newKey } = await searchParams;
-  const token = await requireToken();
+export default async function ServiceClientsPage() {  const token = await requireToken();
 
   const result = await safeLoad(() => listServiceClients(token));
   const clients = result.ok ? result.data.data : [];
@@ -37,14 +30,6 @@ export default async function ServiceClientsPage({
           leaked one does not take the others down with it.
         </p>
       </div>
-
-      {newKey && (
-        <SecretOnce
-          label="Service key — copy it now"
-          value={newKey}
-          hint="Put it in that service's TENANTCORE_SERVICE_KEY. Stored only as a hash; it cannot be shown again."
-        />
-      )}
 
       <NewServiceClientForm action={createServiceClientAction} />
 

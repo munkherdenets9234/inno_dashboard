@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { ActionButton } from "@/components/Button";
+import SecretOnce from "@/components/SecretOnce";
 import { fieldInputClass } from "@/components/AdminField";
 import type { PlatformFormState } from "@/lib/form-state";
 
@@ -34,6 +35,15 @@ export default function NewServiceClientForm({
         {pending ? "Creating…" : "Create key"}
       </ActionButton>
       {state.error && <p className="label text-accent w-full">{state.error}</p>}
+      {state.newKey && (
+        <div className="w-full">
+          <SecretOnce
+            label="Service key — copy it now"
+            value={state.newKey}
+            hint="Copy it now, it cannot be recovered. Put it in that service's TENANTCORE_SERVICE_KEY."
+          />
+        </div>
+      )}
     </form>
   );
 }

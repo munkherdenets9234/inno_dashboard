@@ -3,12 +3,18 @@
 // the forms import from here so a form does not depend on where an action
 // file sits.
 
+// newKey is a one-time secret (service key, generated password). It lives in
+// component state only: never in a URL, redirect, cookie, log or revalidated path.
 export interface PlatformFormState {
   error?: string;
+  newKey?: string;
 }
 
 export interface CreateTenantState {
   error?: string;
+  newKey?: string;
+  tenantId?: string;
+  tenantName?: string;
 }
 
 export interface TenantIdentityState {

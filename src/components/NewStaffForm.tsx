@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { ActionButton } from "@/components/Button";
+import SecretOnce from "@/components/SecretOnce";
 import { fieldInputClass } from "@/components/AdminField";
 import type { PlatformFormState } from "@/lib/form-state";
 
@@ -44,6 +45,15 @@ export default function NewStaffForm({
         {pending ? "Creating…" : "Add"}
       </ActionButton>
       {state.error && <p className="label text-accent w-full">{state.error}</p>}
+      {state.newKey && (
+        <div className="w-full">
+          <SecretOnce
+            label="Password — copy it now"
+            value={state.newKey}
+            hint="Copy it now, it cannot be recovered. Hand it over out of band and have them change it."
+          />
+        </div>
+      )}
     </form>
   );
 }

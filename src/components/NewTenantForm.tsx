@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { ActionButton } from "@/components/Button";
+import SecretOnce from "@/components/SecretOnce";
 import AdminField, { fieldInputClass } from "@/components/AdminField";
 import type { CreateTenantState } from "@/lib/form-state";
 
@@ -49,10 +51,25 @@ export default function NewTenantForm({
         <ActionButton type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create tenant"}
         </ActionButton>
-        <span className="label text-paper/35">The API key is shown once, on the next screen.</span>
+        <span className="label text-paper/35">The API key is shown once, here, after creating.</span>
       </div>
 
       {state.error && <p className="label text-accent">{state.error}</p>}
+
+      {state.newKey && (
+        <div className="flex flex-col gap-3">
+          <SecretOnce
+            label="API key — copy it now"
+            value={state.newKey}
+            hint="Copy it now, it cannot be recovered. Stored only as a hash; it can only be rotated."
+          />
+          {state.tenantId && (
+            <Link href={`/admin/tenants/${state.tenantId}`} className="label text-paper underline">
+              Open {state.tenantName ?? "the new tenant"}
+            </Link>
+          )}
+        </div>
+      )}
     </form>
   );
 }

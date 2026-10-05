@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect, unstable_rethrow } from "next/navigation";
+import { unstable_rethrow } from "next/navigation";
 import { apiDelete, apiPost, apiPut, ApiError } from "@/lib/api/client";
 import { dsRequest } from "@/lib/api/digitalservice";
 import { requireToken } from "@/lib/auth/session";
@@ -317,11 +317,9 @@ export async function createTenantAction(
   }
 
   revalidatePath("/admin/tenants");
-  // The API key is returned exactly once and cannot be read back. Carrying it
-  // to the detail page in the URL is deliberate: this is a secret the
-  // operator MUST copy now, and a redirect that dropped it would mean
-  // rotating a key nobody ever used.
-  redirect(`/admin/tenants/${created.tenant.id}?new_key=${encodeURIComponent(created.api_key)}`);
+  // The API key is returned exactly once and cannot be read back. It goes back
+  // in form state and is shown once from component state, never in a URL.
+  return { newKey: created.api_key, tenantId: created.tenant.id, tenantName: created.tenant.name };
 }
 
 // Suspension outranks the billing state: a suspended tenant's entitlement

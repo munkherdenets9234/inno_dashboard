@@ -30,9 +30,9 @@ export async function createServiceClientAction(
   }
 
   revalidatePath("/admin/platform/service-clients");
-  // Same one-shot secret handling as a tenant's API key: it goes in that
-  // service's TENANTCORE_SERVICE_KEY now or not at all.
-  redirect(`/admin/platform/service-clients?new_key=${encodeURIComponent(created.service_key)}`);
+  // One-shot secret: returned in form state only, never in a URL. It goes in
+  // that service's TENANTCORE_SERVICE_KEY now or not at all.
+  return { newKey: created.service_key };
 }
 
 // Revoking is a status change, not a delete, so the record of which service
@@ -70,8 +70,8 @@ export async function createStaffAction(
   revalidatePath("/admin/platform/staff");
   // tenantcore generates a password when none was given, and echoes it once.
   // When one WAS given, there is nothing to show — whoever typed it has it.
-  if (generated) redirect(`/admin/platform/staff?new_password=${encodeURIComponent(generated)}`);
-  redirect("/admin/platform/staff");
+  // Returned in form state only, never in a URL.
+  return generated ? { newKey: generated } : {};
 }
 
 // tenantcore refuses to suspend the LAST active platform user — locking every
