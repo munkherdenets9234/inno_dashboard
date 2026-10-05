@@ -4,7 +4,7 @@ import { listStaff } from "@/lib/data/platform";
 import ConfirmAction from "@/components/ConfirmAction";
 import NewStaffForm from "@/components/NewStaffForm";
 import Pagination from "@/components/Pagination";
-import SecretOnce from "@/components/SecretOnce";
+import ResetStaffPasswordButton from "@/components/ResetStaffPasswordButton";
 import { createStaffAction, resetStaffPasswordAction, updateStaffStatusAction } from "../actions";
 
 function formatDate(iso: string) {
@@ -14,9 +14,9 @@ function formatDate(iso: string) {
 export default async function StaffPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; new_password?: string; error?: string }>;
+  searchParams: Promise<{ page?: string; error?: string }>;
 }) {
-  const { page: rawPage, new_password: newPassword, error } = await searchParams;
+  const { page: rawPage, error } = await searchParams;
   const page = Math.max(1, Number(rawPage) || 1);
   const limit = 50;
   const token = await requireToken();
@@ -37,14 +37,6 @@ export default async function StaffPage({
       </div>
 
       {error && <p className="label text-accent border border-accent px-4 py-3">{error}</p>}
-
-      {newPassword && (
-        <SecretOnce
-          label="Password — copy it now"
-          value={newPassword}
-          hint="Hand it over out of band and have them change it. Stored only as a hash; it cannot be shown again."
-        />
-      )}
 
       <NewStaffForm action={createStaffAction} />
 
@@ -86,11 +78,9 @@ export default async function StaffPage({
                     <td className="px-4 py-3 align-top text-paper/70">{formatDate(u.created_at)}</td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-3">
-                        <ConfirmAction
+                        <ResetStaffPasswordButton
                           action={resetStaffPasswordAction.bind(null, u.id)}
-                          confirm={`Reset the password for ${u.email}? A new one is generated and shown once.`}
-                          label="Reset password"
-                          className="label text-paper/55 hover:text-accent transition-colors"
+                          email={u.email}
                         />
                         {/* Suspending yourself is allowed by the API as long
                             as someone else is active, and it would sign you

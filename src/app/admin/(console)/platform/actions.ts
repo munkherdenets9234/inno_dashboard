@@ -93,14 +93,32 @@ export async function updateStaffStatusAction(id: string, status: "active" | "su
 
 // Suspension does not bite until the user's current token expires, because
 // tokens are verified offline by every product. TOKEN_TTL is that window.
-export async function resetStaffPasswordAction(id: string) {
+export async function resetStaffPasswordAction(
+  id: string,
+  // useActionState passes these; the reset needs neither.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _prevState: PlatformFormState,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _formData: FormData,
+): Promise<PlatformFormState> {
   const token = await requireToken();
-  const { data } = await apiPut<{ password?: string }>(
-    `/admin/admins/${id}/password`,
-    { new_password: "" },
-    token,
-  );
+  let generated: string | undefined;
+  try {
+    const { data } = await apiPut<{ password?: string }>(
+      `/admin/admins/${id}/password`,
+      { new_password: "" },
+      token,
+    );
+    generated = data.password;
+  } catch (err) {
+    unstable_rethrow(err);
+    return { error: err instanceof ApiError ? err.message : "Failed to reset the password." };
+  }
+
   revalidatePath("/admin/platform/staff");
-  if (data.password) redirect(`/admin/platform/staff?new_password=${encodeURIComponent(data.password)}`);
-  redirect("/admin/platform/staff");
+  // Returned in form state only, never in a URL.
+  if (!generated) {
+    return { error: "The password was reset but the service returned no new password. Reset it again." };
+  }
+  return { newKey: generated };
 }
