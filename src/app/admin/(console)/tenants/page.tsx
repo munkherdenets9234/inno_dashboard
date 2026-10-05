@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { safeLoad } from "@/lib/api/safe";
 import { listTenants } from "@/lib/data/tenants";
+import { LinkButton } from "@/components/Button";
 import Pagination from "@/components/Pagination";
 
 export default async function TenantsPage({
@@ -18,9 +19,12 @@ export default async function TenantsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-2xl">Tenants</h1>
-        <p className="label text-paper/35 mt-1">Manage each tenant&apos;s &quot;Our Projects&quot; showcase content.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-heading text-2xl">Tenants</h1>
+          <p className="label text-paper/35 mt-1">Manage each tenant&apos;s &quot;Our Projects&quot; showcase content.</p>
+        </div>
+        <LinkButton href="/admin/tenants/new">New tenant</LinkButton>
       </div>
 
       {!result.ok ? (

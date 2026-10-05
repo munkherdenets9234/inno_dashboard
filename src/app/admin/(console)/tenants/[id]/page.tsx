@@ -4,7 +4,16 @@ import { apiErrorMessage, safeLoad, type SafeResult } from "@/lib/api/safe";
 import { getTenantById } from "@/lib/data/tenants";
 import { listServiceClients, listTenantAdminUsers } from "@/lib/data/tenant-detail";
 import { ResetPasswordControl, ServiceKeyRotate, TenantKeyPanel } from "@/components/TenantDetailPanels";
-import { resetAdminPasswordAction, rotateServiceKeyAction, rotateTenantKeyAction } from "../actions";
+import ConfirmAction from "@/components/ConfirmAction";
+import SecretOnce from "@/components/SecretOnce";
+import TenantDomainForm from "@/components/TenantDomainForm";
+import {
+  resetAdminPasswordAction,
+  rotateServiceKeyAction,
+  rotateTenantKeyAction,
+  updateTenantDomainAction,
+  updateTenantStatusAction,
+} from "../actions";
 
 const th = "label text-paper/35 font-normal px-4 py-3";
 const td = "px-4 py-3 align-top";
@@ -27,8 +36,15 @@ async function loadAdmins(id: string): Promise<SafeResult<Awaited<ReturnType<typ
   }
 }
 
-export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TenantDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ new_key?: string }>;
+}) {
   const { id } = await params;
+  const { new_key: newKey } = await searchParams;
 
   let tenant;
   try {
@@ -56,7 +72,40 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </p>
       </div>
 
+      {/* Arrives from createTenantAction's redirect: the key is shown once and cannot be read back. */}
+      {newKey && (
+        <SecretOnce
+          label="API key — copy it now"
+          value={newKey}
+          hint="Stored only as a hash; it cannot be shown again, only rotated."
+        />
+      )}
+
       <TenantKeyPanel last4={tenant.api_key_last4} action={rotateTenantKeyAction.bind(null, id)} />
+
+      <section className="flex flex-col gap-3">
+        <h2 className="label text-paper/70">Status</h2>
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className={`label ${tenant.status === "active" ? "text-paper" : "text-paper/35"}`}>
+            {tenant.status}
+          </span>
+          <ConfirmAction
+            action={updateTenantStatusAction.bind(null, id, tenant.status === "active" ? "suspended" : "active")}
+            confirm={
+              tenant.status === "active"
+                ? `Suspend "${tenant.name}"? The entitlement every product sees flips to 'canceled' on its ` +
+                  `next lookup, and suspension outranks the billing state.`
+                : `Reactivate "${tenant.name}"? Its entitlement goes back to following its subscription.`
+            }
+            label={tenant.status === "active" ? "Suspend" : "Reactivate"}
+          />
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="label text-paper/70">Domain</h2>
+        <TenantDomainForm domain={tenant.domain} action={updateTenantDomainAction.bind(null, id)} />
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="label text-paper/70">Admin accounts</h2>
