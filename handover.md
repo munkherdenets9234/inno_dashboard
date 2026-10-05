@@ -1,6 +1,15 @@
 # innonomads/admin (core admin, Inno Nomads) — handover (2026-10-01)
 
-## Update 2026-10-02 (latest; supersedes "uncommitted" below)
+## Update 2026-10-03 — tenant detail page (latest)
+
+- **Built and committed, local only:** `/admin/tenants/[id]` (tenant API key last 4 + rotate, product service keys + rotate, tenant admin accounts + password reset). Console commits `320e25a`, `f3f2392`, `40daba2`, `d8f3413` on `backend-update`. Backends: tenantcore `c502532`, `151e058` (service-key rotate, `POST /admin/service-clients/{id}/rotate`); digitalservice `f1890e0`, `8aad321`, `711686a` (verifies tenantcore's Ed25519 public key on `GET/POST /platform/tenants/:id/admin-users…`). Spec/plan: `tenantcore/docs/superpowers/{specs,plans}/2026-10-02-tenant-detail-page*` (untracked). SDD ledger: `tenantcore/.superpowers/sdd/2026-10-02-tenant-detail-page/progress.md`.
+- **New env:** console `DIGITALSERVICE_URL` (includes `/api/v1`; unset = "Not configured"); digitalservice `TENANTCORE_PUBLIC_KEY` (tenantcore's `/.well-known/tenantcore` `public_key`; unset = group answers 404). Both were appended to the local `.env.local` / `.env` on 2026-10-03.
+- **Verified live (read-only):** page renders for `ZZ-THROWAWAY console test`, last4 shows, service-key table lists active/revoked, admin-users call passes through the tenantcore-token → digitalservice chain (empty list, no auth error), group answers 401 without a token. Go checks green in both services; `tsc`/eslint clean on touched console files.
+- **NOT verified live (user chose to stop; writes to the shared Atlas DB were blocked):** tenant API key rotate, service-key rotate, admin password reset end to end, staff/suspended refusals. Needs throwaway rows in a DB that is not the shared one, or the user clicking. Never rotate `digitalservice-local` / `carwash-local` (in use).
+- **Deviations / deferred:** digitalservice 401 shows a message (key mismatch), not a login redirect; `exp` claim not required by either verifier; no test fails if the reset route's rate limiter is removed; revealed one-time key can vanish if the list refetch fails; verifier ignores `kid`.
+- Also seen: tenantcore has commits `b65cfd6`, `c7ad318`, `fb43235` (Brevo HTTPS mail, dev Gmail fallback) not from this work; `/readyz` showed `email` enabled on 2026-10-03.
+
+## Update 2026-10-02 (supersedes "uncommitted" below)
 
 - Branch `backend-update`, clean, 6 commits unpushed. **The Subscription page is committed: `5318fbe`** (Plan A Task 8). Start it with `npm run dev -- -p 3011` from this folder (the launch config's `--prefix` form misbehaves for the site; this app worked from its folder).
 - **Click-through on 2026-10-02 against `ZZ-THROWAWAY console test` (id `6abddd74a3edc529920a78ab`), all matching the previews on the page:** billing day change (current period unchanged, previews moved), Renew (end date moved to the next billing day as previewed), Change plan to Travel Pro (new period from today, as previewed), Cancel confirmation (Keep it closes it). **Not tested:** the cancel itself on the throwaway (the click was blocked by the session's permission check), reactivate-by-change-plan, Subscribe on a tenant with none, the deleted-plan ("Plan removed") case.
