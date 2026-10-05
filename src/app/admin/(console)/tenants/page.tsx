@@ -57,6 +57,12 @@ export default async function TenantsPage({
                   <td className="px-4 py-3 align-top">
                     <div className="flex items-center gap-3">
                       <Link
+                        href={`/admin/tenants/${t.id}`}
+                        className="label text-paper/55 hover:text-accent transition-colors"
+                      >
+                        Details
+                      </Link>
+                      <Link
                         href={`/admin/tenants/${t.id}/project`}
                         className="label text-paper/55 hover:text-accent transition-colors"
                       >

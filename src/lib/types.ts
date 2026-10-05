@@ -122,3 +122,22 @@ export interface Subscription {
     period_days: number;
   } | null;
 }
+
+// A registered product service (tenantcore view.ServiceClient). The raw key is
+// never part of this shape; it is returned once by create/rotate.
+export interface ServiceClient {
+  id: string;
+  name: string;
+  status: "active" | "revoked";
+  key_last4: string;
+  created_at: string;
+  last_seen_at?: string | null;
+}
+
+// An admin user of a tenant, as digitalservice lists them. No password hash.
+export interface TenantAdminUser {
+  id: string;
+  email: string;
+  name: string;
+  status: "active" | "suspended";
+}
