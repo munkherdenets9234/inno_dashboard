@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import StatusBadge from "@/components/StatusBadge";
 import { ActionButton } from "@/components/Button";
+import PromoteQuoteForm from "@/components/PromoteQuoteForm";
 import { updateQuoteStatusAction } from "@/app/admin/(console)/quotes/actions";
 import type { Quote, QuoteStatus } from "@/lib/types";
 
@@ -16,7 +17,15 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default function QuoteRow({ quote, tenantName }: { quote: Quote; tenantName?: string }) {
+export default function QuoteRow({
+  quote,
+  tenantName,
+  tenantNames = {},
+}: {
+  quote: Quote;
+  tenantName?: string;
+  tenantNames?: Record<string, string>;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [pendingTo, setPendingTo] = useState<QuoteStatus | null>(null);
@@ -54,8 +63,9 @@ export default function QuoteRow({ quote, tenantName }: { quote: Quote; tenantNa
           <StatusBadge status={quote.status} />
         </td>
       </tr>
-      {open && (
-        <tr className="border-b border-paper/10">
+      {/* Kept mounted (hidden) when collapsed so a one-time API key held in
+          PromoteQuoteForm state is not lost by collapsing the row. */}
+      <tr hidden={!open} className="border-b border-paper/10">
           <td colSpan={5} className="px-4 py-4 bg-paper/[0.03]">
             <div className="flex flex-col gap-3 max-w-2xl">
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -92,6 +102,7 @@ export default function QuoteRow({ quote, tenantName }: { quote: Quote; tenantNa
                 <span className="label text-paper/35 block mb-1">Message</span>
                 <p className="text-sm text-paper/85 whitespace-pre-wrap">{quote.message || "—"}</p>
               </div>
+              <PromoteQuoteForm quote={quote} tenantNames={tenantNames} />
               {error && <p className="label text-accent">{error}</p>}
               <div className="flex gap-2.5 flex-wrap">
                 {TRANSITIONS.map((t) => (
@@ -108,7 +119,6 @@ export default function QuoteRow({ quote, tenantName }: { quote: Quote; tenantNa
             </div>
           </td>
         </tr>
-      )}
     </>
   );
 }
