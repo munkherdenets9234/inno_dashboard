@@ -9,7 +9,7 @@ type ResetAction = (prev: ResetPasswordState) => Promise<ResetPasswordState>;
 
 // The new key lives only in this component's state (the action result). It is
 // never written to a URL, storage or the console, and is gone on navigation.
-function NewKey({ value }: { value: string }) {
+export function NewKey({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {

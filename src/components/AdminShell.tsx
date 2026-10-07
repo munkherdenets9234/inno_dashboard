@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/admin/quotes", label: "Quotes" },
   { href: "/admin/packages", label: "Packages" },
   { href: "/admin/content", label: "Site copy" },
+  { href: "/admin/service-keys", label: "Service keys" },
 ];
 
 export default function AdminShell({
