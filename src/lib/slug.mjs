@@ -2,7 +2,7 @@
 // any run of other characters becomes one hyphen, no leading or trailing
 // hyphen, at most 40 characters. Returns "" when nothing usable remains
 // (empty, symbol-only or non-Latin input) and never throws. The backend
-// validates the slug again; this is only a convenience for the form.
+// validates the slug (lowercase letters, digits, hyphens; 1 to 63 characters); this is only a convenience.
 export const MAX_SLUG_LENGTH = 40;
 
 export function suggestSlug(text) {

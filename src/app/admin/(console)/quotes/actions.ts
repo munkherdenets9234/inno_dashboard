@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { apiPut, apiPost, ApiError } from "@/lib/api/client";
 import { requireToken } from "@/lib/auth/session";
 import type { QuoteStatus, Tenant } from "@/lib/types";
+import { normalizeQuoteLink } from "@/lib/promote.mjs";
+import type { QuoteLink } from "@/lib/promote.mjs";
 
 export async function updateQuoteStatusAction(id: string, status: QuoteStatus) {
   const token = await requireToken();
@@ -28,6 +30,7 @@ export type PromoteQuoteResult =
       tenant: { id: string; name: string; slug: string };
       apiKey: string;
       quoteLinked: boolean;
+      quoteLink: QuoteLink;
     }
   | { ok: false; error: string };
 
@@ -35,6 +38,7 @@ type PromoteResponse = {
   tenant: Pick<Tenant, "id" | "name" | "slug">;
   api_key: string;
   quote_linked: boolean;
+  quote_link?: string;
 };
 
 const GENERIC_PROMOTE_ERROR = "Could not promote this quote. Try again.";
@@ -80,5 +84,6 @@ export async function promoteQuoteAction(id: string, input: PromoteQuoteInput): 
     tenant: { id: data.tenant.id, name: data.tenant.name, slug: data.tenant.slug },
     apiKey: data.api_key,
     quoteLinked: data.quote_linked === true,
+    quoteLink: normalizeQuoteLink(data.quote_link, data.quote_linked),
   };
 }

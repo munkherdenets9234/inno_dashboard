@@ -6,12 +6,14 @@ import { ActionButton } from "@/components/Button";
 import AdminField, { fieldInputClass } from "@/components/AdminField";
 import { promoteQuoteAction } from "@/app/admin/(console)/quotes/actions";
 import { suggestSlug } from "@/lib/slug.mjs";
+import { enterOnce, leave, promoteNotice } from "@/lib/promote.mjs";
+import type { QuoteLink } from "@/lib/promote.mjs";
 import type { Quote } from "@/lib/types";
 
 type Issued = {
   tenant: { id: string; name: string; slug: string };
   apiKey: string;
-  quoteLinked: boolean;
+  quoteLink: QuoteLink;
 };
 
 // Promotes a prospect quote to a tenant. The API key the backend returns is
@@ -38,9 +40,12 @@ export default function PromoteQuoteForm({
   // Non-secret record that this quote became a tenant. Unlike `issued` it
   // survives Done, so the Promote button never comes back: with the quote not
   // linked there is nothing server-side to refuse a second, duplicate tenant.
-  const [promotedTo, setPromotedTo] = useState<{ id: string; name: string; quoteLinked: boolean } | null>(null);
+  const [promotedTo, setPromotedTo] = useState<{ id: string; name: string; quoteLink: QuoteLink } | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "manual">("idle");
   const keyRef = useRef<HTMLInputElement>(null);
+  // Set and read synchronously: `pending` is stale inside a closure, so two
+  // quick submits would both pass a check on it.
+  const inFlight = useRef<boolean>(false);
 
   function onNameChange(value: string) {
     setName(value);
@@ -49,29 +54,37 @@ export default function PromoteQuoteForm({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (pending) return;
+    if (!enterOnce(inFlight)) return;
     setError(null);
     startTransition(async () => {
-      let res;
       try {
-        res = await promoteQuoteAction(quote.id, {
-          name: name.trim(),
-          slug: slug.trim(),
-          contact_email: email.trim() || undefined,
-          domain: domain.trim() || undefined,
-        });
-      } catch {
-        setError("Could not promote this quote. Try again.");
-        return;
+        await run();
+      } finally {
+        leave(inFlight);
       }
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      setPromotedTo({ id: res.tenant.id, name: res.tenant.name, quoteLinked: res.quoteLinked });
-      setIssued({ tenant: res.tenant, apiKey: res.apiKey, quoteLinked: res.quoteLinked });
-      setShowForm(false);
     });
+  }
+
+  async function run() {
+    let res;
+    try {
+      res = await promoteQuoteAction(quote.id, {
+        name: name.trim(),
+        slug: slug.trim(),
+        contact_email: email.trim() || undefined,
+        domain: domain.trim() || undefined,
+      });
+    } catch {
+      setError("Could not promote this quote. Try again.");
+      return;
+    }
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setPromotedTo({ id: res.tenant.id, name: res.tenant.name, quoteLink: res.quoteLink });
+    setIssued({ tenant: res.tenant, apiKey: res.apiKey, quoteLink: res.quoteLink });
+    setShowForm(false);
   }
 
   async function copyKey() {
@@ -92,6 +105,9 @@ export default function PromoteQuoteForm({
     setIssued(null);
     setCopyState("idle");
   }
+
+  const issuedNotice = issued ? promoteNotice(issued.quoteLink, issued.tenant.name) : null;
+  const promotedNotice = promotedTo ? promoteNotice(promotedTo.quoteLink, promotedTo.name) : null;
 
   if (issued) {
     return (
@@ -118,11 +134,7 @@ export default function PromoteQuoteForm({
         {copyState === "manual" && (
           <p className="label text-paper/70">Copy is unavailable here. The key is selected: press Ctrl+C.</p>
         )}
-        {!issued.quoteLinked && (
-          <p className="label text-accent">
-            The tenant was created but the quote could not be linked to it. Close the quote by hand.
-          </p>
-        )}
+        {issuedNotice && <p className="label text-accent">{issuedNotice}</p>}
         <div className="flex gap-2.5 flex-wrap items-center">
           <Link href={`/admin/tenants/${issued.tenant.id}`} className="label underline hover:text-accent">
             Open tenant
@@ -144,11 +156,7 @@ export default function PromoteQuoteForm({
             {promotedTo.name}
           </Link>
         </p>
-        {!promotedTo.quoteLinked && (
-          <p className="label text-accent">
-            The tenant was created but the quote could not be linked to it. Close the quote by hand.
-          </p>
-        )}
+        {promotedNotice && <p className="label text-accent">{promotedNotice}</p>}
       </div>
     );
   }
@@ -190,7 +198,7 @@ export default function PromoteQuoteForm({
           maxLength={200}
         />
       </AdminField>
-      <AdminField label="Slug" htmlFor={`${id}-slug`} hint="Lowercase letters, digits and hyphens.">
+      <AdminField label="Slug" htmlFor={`${id}-slug`} hint="Lowercase letters, digits and hyphens, up to 63 characters.">
         <input
           id={`${id}-slug`}
           className={fieldInputClass}
@@ -200,7 +208,9 @@ export default function PromoteQuoteForm({
             setSlug(e.target.value);
           }}
           required
-          maxLength={60}
+          maxLength={63}
+          pattern="[a-z0-9]+(-[a-z0-9]+)*"
+          title="Lowercase letters, digits and hyphens, 1 to 63 characters, with no leading, trailing or doubled hyphen. Example: acme-travel."
           autoComplete="off"
         />
       </AdminField>
