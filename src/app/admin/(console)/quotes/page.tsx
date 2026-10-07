@@ -20,6 +20,7 @@ export default async function QuotesPage({
   const quotes = result.ok ? result.data.data : [];
   const meta = result.ok ? result.data.meta : undefined;
   const tenantsById = new Map((tenantsRes.ok ? tenantsRes.data.data : []).map((t) => [t.id, t.name]));
+  const tenantNames = Object.fromEntries(tenantsById);
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,7 +49,12 @@ export default async function QuotesPage({
             </thead>
             <tbody>
               {quotes.map((q) => (
-                <QuoteRow key={q.id} quote={q} tenantName={q.tenant_id ? tenantsById.get(q.tenant_id) : undefined} />
+                <QuoteRow
+                  key={q.id}
+                  quote={q}
+                  tenantName={q.tenant_id ? tenantsById.get(q.tenant_id) : undefined}
+                  tenantNames={tenantNames}
+                />
               ))}
             </tbody>
           </table>

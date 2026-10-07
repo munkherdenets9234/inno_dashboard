@@ -60,6 +60,9 @@ export type QuoteStatus = "new" | "contacted" | "quoted" | "closed";
 export interface Quote {
   id: string;
   tenant_id?: string;
+  // Set when an admin promoted this prospect into a tenant. Distinct from
+  // tenant_id, which means "came through that tenant's storefront".
+  promoted_tenant_id?: string;
   name: string;
   email: string;
   phone?: string;
