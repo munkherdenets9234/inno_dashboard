@@ -35,6 +35,10 @@ export default function PromoteQuoteForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [issued, setIssued] = useState<Issued | null>(null);
+  // Non-secret record that this quote became a tenant. Unlike `issued` it
+  // survives Done, so the Promote button never comes back: with the quote not
+  // linked there is nothing server-side to refuse a second, duplicate tenant.
+  const [promotedTo, setPromotedTo] = useState<{ id: string; name: string; quoteLinked: boolean } | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "manual">("idle");
   const keyRef = useRef<HTMLInputElement>(null);
 
@@ -64,6 +68,7 @@ export default function PromoteQuoteForm({
         setError(res.error);
         return;
       }
+      setPromotedTo({ id: res.tenant.id, name: res.tenant.name, quoteLinked: res.quoteLinked });
       setIssued({ tenant: res.tenant, apiKey: res.apiKey, quoteLinked: res.quoteLinked });
       setShowForm(false);
     });
@@ -126,6 +131,24 @@ export default function PromoteQuoteForm({
             Done
           </ActionButton>
         </div>
+      </div>
+    );
+  }
+
+  if (promotedTo) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm">
+          Became tenant{" "}
+          <Link href={`/admin/tenants/${promotedTo.id}`} className="underline hover:text-accent">
+            {promotedTo.name}
+          </Link>
+        </p>
+        {!promotedTo.quoteLinked && (
+          <p className="label text-accent">
+            The tenant was created but the quote could not be linked to it. Close the quote by hand.
+          </p>
+        )}
       </div>
     );
   }

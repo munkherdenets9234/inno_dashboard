@@ -1,4 +1,4 @@
-﻿// Suggests a tenant slug from free text: lowercase ASCII letters and digits,
+// Suggests a tenant slug from free text: lowercase ASCII letters and digits,
 // any run of other characters becomes one hyphen, no leading or trailing
 // hyphen, at most 40 characters. Returns "" when nothing usable remains
 // (empty, symbol-only or non-Latin input) and never throws. The backend
