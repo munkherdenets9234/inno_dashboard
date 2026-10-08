@@ -4,7 +4,15 @@ import { apiErrorMessage, safeLoad, type SafeResult } from "@/lib/api/safe";
 import { getTenantById } from "@/lib/data/tenants";
 import { listServiceClients, listTenantAdminUsers } from "@/lib/data/tenant-detail";
 import { ResetPasswordControl, ServiceKeyRotate, TenantKeyPanel } from "@/components/TenantDetailPanels";
-import { resetAdminPasswordAction, rotateServiceKeyAction, rotateTenantKeyAction } from "../actions";
+import ConfirmAction from "@/components/ConfirmAction";
+import TenantDomainForm from "@/components/TenantDomainForm";
+import {
+  resetAdminPasswordAction,
+  rotateServiceKeyAction,
+  rotateTenantKeyAction,
+  updateTenantDomainAction,
+  updateTenantStatusAction,
+} from "../actions";
 
 const th = "label text-paper/35 font-normal px-4 py-3";
 const td = "px-4 py-3 align-top";
@@ -57,6 +65,30 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <TenantKeyPanel last4={tenant.api_key_last4} action={rotateTenantKeyAction.bind(null, id)} />
+
+      <section className="flex flex-col gap-3">
+        <h2 className="label text-paper/70">Status</h2>
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className={`label ${tenant.status === "active" ? "text-paper" : "text-paper/35"}`}>
+            {tenant.status}
+          </span>
+          <ConfirmAction
+            action={updateTenantStatusAction.bind(null, id, tenant.status === "active" ? "suspended" : "active")}
+            confirm={
+              tenant.status === "active"
+                ? `Suspend "${tenant.name}"? The entitlement every product sees flips to 'canceled' on its ` +
+                  `next lookup, and suspension outranks the billing state.`
+                : `Reactivate "${tenant.name}"? Its entitlement goes back to following its subscription.`
+            }
+            label={tenant.status === "active" ? "Suspend" : "Reactivate"}
+          />
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="label text-paper/70">Domain</h2>
+        <TenantDomainForm domain={tenant.domain} action={updateTenantDomainAction.bind(null, id)} />
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="label text-paper/70">Admin accounts</h2>

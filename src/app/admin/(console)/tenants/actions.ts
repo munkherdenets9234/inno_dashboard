@@ -5,6 +5,8 @@ import { unstable_rethrow } from "next/navigation";
 import { apiDelete, apiPost, apiPut, ApiError } from "@/lib/api/client";
 import { dsRequest } from "@/lib/api/digitalservice";
 import { requireToken } from "@/lib/auth/session";
+import type { CreatedTenant } from "@/lib/core-types";
+import type { CreateTenantState, TenantIdentityState } from "@/lib/form-state";
 import { validBillingDay } from "@/lib/subscription";
 import type { LocaleText, ProjectImage, ProjectMetric } from "@/lib/types";
 
@@ -282,4 +284,70 @@ export async function resetAdminPasswordAction(
     return { error: "Failed to send the reset code." };
   }
   return { sent: true };
+}
+
+// ── Tenant create, status and domain ──────────────────────────────────────
+
+export async function createTenantAction(
+  _prevState: CreateTenantState,
+  formData: FormData,
+): Promise<CreateTenantState> {
+  const token = await requireToken();
+
+  const name = String(formData.get("name") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim();
+  if (!name || !slug) return { error: "Name and slug are required." };
+
+  let created: CreatedTenant;
+  try {
+    const res = await apiPost<CreatedTenant>(
+      "/admin/tenants",
+      {
+        name,
+        slug,
+        contact_email: String(formData.get("contact_email") ?? "").trim(),
+        domain: String(formData.get("domain") ?? "").trim(),
+      },
+      token,
+    );
+    created = res.data;
+  } catch (err) {
+    unstable_rethrow(err);
+    return { error: err instanceof ApiError ? err.message : "Failed to create tenant." };
+  }
+
+  revalidatePath("/admin/tenants");
+  // The API key is returned exactly once and cannot be read back. It goes back
+  // in form state and is shown once from component state, never in a URL.
+  return { newKey: created.api_key, tenantId: created.tenant.id, tenantName: created.tenant.name };
+}
+
+// Suspension outranks the billing state: a suspended tenant's entitlement
+// reads "canceled" to every product on its next lookup, whatever the
+// subscription says. Reactivating hands the decision back to billing.
+export async function updateTenantStatusAction(id: string, status: "active" | "suspended") {
+  const token = await requireToken();
+  await apiPut(`/admin/tenants/${id}/status`, { status }, token);
+  revalidatePath("/admin/tenants");
+  revalidatePath(`/admin/tenants/${id}`);
+}
+
+export async function updateTenantDomainAction(
+  id: string,
+  _prevState: TenantIdentityState,
+  formData: FormData,
+): Promise<TenantIdentityState> {
+  const token = await requireToken();
+  try {
+    await apiPut(
+      `/admin/tenants/${id}/domain`,
+      { domain: String(formData.get("domain") ?? "").trim() },
+      token,
+    );
+  } catch (err) {
+    unstable_rethrow(err);
+    return { error: err instanceof ApiError ? err.message : "Failed to update domain." };
+  }
+  revalidatePath(`/admin/tenants/${id}`);
+  return { saved: true };
 }
