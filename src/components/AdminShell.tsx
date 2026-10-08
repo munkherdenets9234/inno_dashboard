@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/admin/packages", label: "Packages" },
   { href: "/admin/content", label: "Site copy" },
   { href: "/admin/service-keys", label: "Service keys" },
+  { href: "/admin/mail-log", label: "Mail log" },
 ];
 
 export default function AdminShell({

@@ -17,7 +17,7 @@ src/app/
     login/            OUTSIDE the gate, or signing in would loop
     (console)/
       layout.tsx      the auth gate + AdminShell, for everything below it
-      tenants/  quotes/  packages/  content/
+      tenants/  quotes/  packages/  content/  mail-log/
 src/components/
   site/               the public site's components, namespaced
   *.tsx               the console's

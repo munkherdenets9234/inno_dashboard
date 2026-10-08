@@ -1,6 +1,13 @@
 # innonomads/admin (core admin, Inno Nomads) — handover (2026-10-01)
 
-## Update 2026-10-03 — tenant detail page (latest)
+## Update 2026-10-08 — mail log page (latest, uncommitted)
+
+- **New page:** `/admin/mail-log` (`src/app/admin/(console)/mail-log/page.tsx`), read-only list of sent and failed emails: time, template, recipient, status badge, source, error text. Filters for status and template, paging, empty state. Data is fetched server-side with the session token through `src/lib/data/mail-log.ts` (`GET /api/v1/admin/mail-log`). Sidebar entry added in `src/components/AdminShell.tsx`; types in `src/lib/types.ts`; `STRUCTURE.md` updated.
+- **Backend:** tenantcore service mail log, see `tenantcore service/HANDOVER.md` ("Mail log"). Superadmin only. Recipient addresses are stored in full; the code, body and subject never are.
+- **Known gaps:** the template names in `lib/data/mail-log.ts` are hardcoded and must match `mailer.Names()` in the service. No tests for the page. `npm run lint` showed 3 errors and 1 warning, two of them in `ThemeProvider.tsx` and `ContactView.tsx`, not in the new files; the other two were cut off in the agent's output and not re-checked. Lint on the new and changed files alone is clean.
+- **Local run:** rebuilt with `npm run build` and started with `npm run start -- -p 3002`, with process-level `API_URL` / `NEXT_PUBLIC_API_URL` pointing at tenantcore on `http://localhost:8090/api/v1` and `DIGITALSERVICE_URL` at the template service on `http://localhost:8080/api/v1`. `.env.local` was not edited. Note: the folder was renamed from `#. Tenant core` to `TenantCore`, because a `#` in the path breaks Tailwind's PostCSS plugin (Turbopack and webpack alike).
+
+## Update 2026-10-03 — tenant detail page
 
 - **Built and committed, local only:** `/admin/tenants/[id]` (tenant API key last 4 + rotate, product service keys + rotate, tenant admin accounts + password reset). Console commits `320e25a`, `f3f2392`, `40daba2`, `d8f3413` on `backend-update`. Backends: tenantcore `c502532`, `151e058` (service-key rotate, `POST /admin/service-clients/{id}/rotate`); digitalservice `f1890e0`, `8aad321`, `711686a` (verifies tenantcore's Ed25519 public key on `GET/POST /platform/tenants/:id/admin-users…`). Spec/plan: `tenantcore/docs/superpowers/{specs,plans}/2026-10-02-tenant-detail-page*` (untracked). SDD ledger: `tenantcore/.superpowers/sdd/2026-10-02-tenant-detail-page/progress.md`.
 - **New env:** console `DIGITALSERVICE_URL` (includes `/api/v1`; unset = "Not configured"); digitalservice `TENANTCORE_PUBLIC_KEY` (tenantcore's `/.well-known/tenantcore` `public_key`; unset = group answers 404). Both were appended to the local `.env.local` / `.env` on 2026-10-03.
