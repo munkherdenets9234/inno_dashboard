@@ -144,3 +144,17 @@ export interface TenantAdminUser {
   name: string;
   status: "active" | "suspended";
 }
+
+// One send attempt from tenantcore's mail log. No body, subject or code is
+// stored, so there is nothing of the sort to show.
+export interface MailLogEntry {
+  id: string;
+  created_at: string;
+  template: string;
+  to: string;
+  status: "sent" | "failed";
+  error?: string;
+  // "system" for tenantcore's own mail, else the service client that asked.
+  source: string;
+  tenant_id?: string;
+}
