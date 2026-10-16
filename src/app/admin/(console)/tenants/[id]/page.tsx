@@ -1,34 +1,42 @@
-import { notFound, unstable_rethrow } from "next/navigation";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api/client";
-import { apiErrorMessage, safeLoad, type SafeResult } from "@/lib/api/safe";
 import { getTenantById } from "@/lib/data/tenants";
-import { listServiceClients, listTenantAdminUsers } from "@/lib/data/tenant-detail";
-import { ResetPasswordControl, ServiceKeyRotate, TenantKeyPanel } from "@/components/TenantDetailPanels";
-import { resetAdminPasswordAction, rotateServiceKeyAction, rotateTenantKeyAction } from "../actions";
+import OverviewTab from "@/components/tenant-tabs/OverviewTab";
+import SubscriptionTab from "@/components/tenant-tabs/SubscriptionTab";
+import DomainsTab from "@/components/tenant-tabs/DomainsTab";
+import CostingTab from "@/components/tenant-tabs/CostingTab";
+import PackagesTab from "@/components/tenant-tabs/PackagesTab";
+import LeadsTab from "@/components/tenant-tabs/LeadsTab";
+import ProjectTab from "@/components/tenant-tabs/ProjectTab";
 
-const th = "label text-paper/35 font-normal px-4 py-3";
-const td = "px-4 py-3 align-top";
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "subscription", label: "Subscription" },
+  { key: "domains", label: "Domains" },
+  { key: "costing", label: "Costing" },
+  { key: "packages", label: "Packages" },
+  { key: "leads", label: "Leads" },
+  { key: "project", label: "Project" },
+] as const;
 
-// safeLoad returns only a message string, so detect the 404 here. A 401 keeps
-// the ApiError message from dsRequest, shown verbatim like the 404 text.
-async function loadAdmins(id: string): Promise<SafeResult<Awaited<ReturnType<typeof listTenantAdminUsers>>>> {
-  try {
-    return { ok: true, data: await listTenantAdminUsers(id) };
-  } catch (err) {
-    unstable_rethrow(err);
-    if (err instanceof ApiError && err.status === 404) {
-      return {
-        ok: false,
-        message: "digitalservice has TENANTCORE_PUBLIC_KEY unset, so tenant admin accounts are unavailable",
-      };
-    }
-    if (err instanceof ApiError && err.status === 401) return { ok: false, message: err.message };
-    return { ok: false, message: apiErrorMessage(err) };
-  }
+type TabKey = (typeof TABS)[number]["key"];
+
+function parseTab(raw: string | string[] | undefined): TabKey {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return TABS.find((t) => t.key === v)?.key ?? "overview";
 }
 
-export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TenantDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[]; page?: string }>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
+  const tab = parseTab(sp.tab);
 
   let tenant;
   try {
@@ -37,13 +45,6 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
     if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
     throw err;
   }
-
-  // Each source has its own safeLoad so one failing source degrades only its section.
-  // A 404 here means digitalservice's route group is off (TENANTCORE_PUBLIC_KEY unset).
-  const [adminsRes, clientsRes] = await Promise.all([
-    loadAdmins(id),
-    safeLoad(() => listServiceClients()),
-  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -56,91 +57,33 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </p>
       </div>
 
-      <TenantKeyPanel last4={tenant.api_key_last4} action={rotateTenantKeyAction.bind(null, id)} />
+      <nav aria-label="Tenant sections" className="flex gap-1 overflow-x-auto border-b border-paper/10">
+        {TABS.map((t) => {
+          const active = t.key === tab;
+          return (
+            <Link
+              key={t.key}
+              href={`/admin/tenants/${id}?tab=${t.key}`}
+              aria-current={active ? "page" : undefined}
+              className={`label shrink-0 whitespace-nowrap px-4 py-3 -mb-px border-b-2 transition-colors ${
+                active
+                  ? "border-accent text-paper"
+                  : "border-transparent text-paper/70 hover:text-accent"
+              }`}
+            >
+              {t.label}
+            </Link>
+          );
+        })}
+      </nav>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="label text-paper/70">Admin accounts</h2>
-        {!adminsRes.ok ? (
-          <p className="label text-accent">{adminsRes.message}</p>
-        ) : adminsRes.data === null ? (
-          <p className="label text-paper/35 border border-paper/10 px-4 py-3">Not configured</p>
-        ) : adminsRes.data.length === 0 ? (
-          <p className="label text-paper/35 border border-paper/10 px-4 py-3">No admin account in this product</p>
-        ) : (
-          <div className="border border-paper/10 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-paper/10 text-left">
-                  <th className={th}>Email</th>
-                  <th className={th}>Name</th>
-                  <th className={th}>Status</th>
-                  <th className={th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminsRes.data.map((u) => (
-                  <tr key={u.id} className="border-b border-paper/10 last:border-b-0">
-                    <td className={td}>{u.email}</td>
-                    <td className={`${td} text-paper/70`}>{u.name}</td>
-                    <td className={td}>
-                      <span className={`label ${u.status === "active" ? "text-paper" : "text-paper/35"}`}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className={td}>
-                      {u.status === "active" && (
-                        <ResetPasswordControl email={u.email} action={resetAdminPasswordAction.bind(null, id, u.id)} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="label text-paper/70">Product service keys (shared by all tenants)</h2>
-        {!clientsRes.ok ? (
-          <p className="label text-accent">{clientsRes.message}</p>
-        ) : clientsRes.data.length === 0 ? (
-          <p className="label text-paper/35 border border-paper/10 px-4 py-3">No product service keys.</p>
-        ) : (
-          <div className="border border-paper/10 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-paper/10 text-left">
-                  <th className={th}>Name</th>
-                  <th className={th}>Status</th>
-                  <th className={th}>Key</th>
-                  <th className={th}>Created</th>
-                  <th className={th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientsRes.data.map((c) => (
-                  <tr key={c.id} className="border-b border-paper/10 last:border-b-0">
-                    <td className={td}>{c.name}</td>
-                    <td className={td}>
-                      <span className={`label ${c.status === "active" ? "text-paper" : "text-paper/35"}`}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className={`${td} font-mono text-paper/70`}>•••• {c.key_last4}</td>
-                    <td className={`${td} text-paper/70`}>{c.created_at.slice(0, 10)}</td>
-                    <td className={td}>
-                      {c.status === "active" && (
-                        <ServiceKeyRotate productName={c.name} action={rotateServiceKeyAction.bind(null, c.id, id)} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {tab === "overview" && <OverviewTab id={id} tenant={tenant} />}
+      {tab === "subscription" && <SubscriptionTab id={id} />}
+      {tab === "domains" && <DomainsTab id={id} />}
+      {tab === "costing" && <CostingTab id={id} />}
+      {tab === "packages" && <PackagesTab id={id} />}
+      {tab === "leads" && <LeadsTab id={id} searchParams={sp} />}
+      {tab === "project" && <ProjectTab tenant={tenant} />}
     </div>
   );
 }

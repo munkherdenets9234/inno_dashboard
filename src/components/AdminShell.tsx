@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/admin/content", label: "Site copy" },
   { href: "/admin/service-keys", label: "Service keys" },
   { href: "/admin/mail-log", label: "Mail log" },
+  { href: "/admin/settings/payment", label: "Payment settings" },
 ];
 
 export default function AdminShell({
