@@ -62,30 +62,6 @@ export default async function TenantsPage({
                       >
                         Details
                       </Link>
-                      <Link
-                        href={`/admin/tenants/${t.id}/project`}
-                        className="label text-paper/55 hover:text-accent transition-colors"
-                      >
-                        Edit showcase
-                      </Link>
-                      <Link
-                        href={`/admin/tenants/${t.id}/leads`}
-                        className="label text-paper/55 hover:text-accent transition-colors"
-                      >
-                        View leads
-                      </Link>
-                      <Link
-                        href={`/admin/tenants/${t.id}/packages`}
-                        className="label text-paper/55 hover:text-accent transition-colors"
-                      >
-                        Manage packages
-                      </Link>
-                      <Link
-                        href={`/admin/tenants/${t.id}/subscription`}
-                        className="label text-paper/55 hover:text-accent transition-colors"
-                      >
-                        Subscription
-                      </Link>
                     </div>
                   </td>
                 </tr>
