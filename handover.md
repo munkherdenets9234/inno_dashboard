@@ -64,3 +64,7 @@ Spec/plan: `tenantcore/docs/superpowers/specs/2026-10-01-subscription-expiry-not
 - tenantcore sends `null`, not `[]`, for empty collections; types must admit it.
 - Windows shell: put long Python in a file; a command moved to the background keeps running its later steps.
 - Never print `.env` values.
+
+## Update - real state tenant admins
+
+- **New env:** console `REALSTATE_SERVICE_URL` (includes `/api/v1`; unset = "Not configured"). Tenants whose subscription plan lists the `realestate` module use it for the Admin accounts list, "Add tenant admin" and "Resend invite / Send reset link"; all other tenants keep `DIGITALSERVICE_URL`.

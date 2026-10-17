@@ -1,9 +1,11 @@
 import { unstable_rethrow } from "next/navigation";
 import { ApiError } from "@/lib/api/client";
 import { apiErrorMessage, safeLoad, type SafeResult } from "@/lib/api/safe";
-import { listServiceClients, listTenantAdminUsers } from "@/lib/data/tenant-detail";
-import { ResetPasswordControl, ServiceKeyRotate, TenantKeyPanel } from "@/components/TenantDetailPanels";
-import { resetAdminPasswordAction, rotateServiceKeyAction, rotateTenantKeyAction } from "@/app/admin/(console)/tenants/actions";
+import { listServiceClients, listTenantAdminUsers, resolveTenantService } from "@/lib/data/tenant-detail";
+import type { ProductService } from "@/lib/api/digitalservice";
+import { requireToken } from "@/lib/auth/session";
+import { AddAdminForm, ResetPasswordControl, ServiceKeyRotate, TenantKeyPanel } from "@/components/TenantDetailPanels";
+import { addTenantAdminAction, resetAdminPasswordAction, rotateServiceKeyAction, rotateTenantKeyAction } from "@/app/admin/(console)/tenants/actions";
 import type { Tenant } from "@/lib/types";
 
 const th = "label text-paper/35 font-normal px-4 py-3";
@@ -11,15 +13,19 @@ const td = "px-4 py-3 align-top";
 
 // safeLoad returns only a message string, so detect the 404 here. A 401 keeps
 // the ApiError message from dsRequest, shown verbatim like the 404 text.
-async function loadAdmins(id: string): Promise<SafeResult<Awaited<ReturnType<typeof listTenantAdminUsers>>>> {
+async function loadAdmins(
+  id: string,
+  service: ProductService,
+): Promise<SafeResult<Awaited<ReturnType<typeof listTenantAdminUsers>>>> {
+  const name = service.product === "realestate" ? "The real state service" : "digitalservice";
   try {
-    return { ok: true, data: await listTenantAdminUsers(id) };
+    return { ok: true, data: await listTenantAdminUsers(id, service) };
   } catch (err) {
     unstable_rethrow(err);
     if (err instanceof ApiError && err.status === 404) {
       return {
         ok: false,
-        message: "digitalservice has TENANTCORE_PUBLIC_KEY unset, so tenant admin accounts are unavailable",
+        message: `${name} has TENANTCORE_PUBLIC_KEY unset, so tenant admin accounts are unavailable`,
       };
     }
     if (err instanceof ApiError && err.status === 401) return { ok: false, message: err.message };
@@ -30,10 +36,16 @@ async function loadAdmins(id: string): Promise<SafeResult<Awaited<ReturnType<typ
 export default async function OverviewTab({ id, tenant }: { id: string; tenant: Tenant }) {
   // Each source has its own safeLoad so one failing source degrades only its section.
   // A 404 here means digitalservice's route group is off (TENANTCORE_PUBLIC_KEY unset).
+  const token = await requireToken();
+  const serviceRes = await safeLoad(() => resolveTenantService(id, token));
   const [adminsRes, clientsRes] = await Promise.all([
-    loadAdmins(id),
+    serviceRes.ok
+      ? loadAdmins(id, serviceRes.data)
+      : Promise.resolve<SafeResult<null>>({ ok: false, message: serviceRes.message }),
     safeLoad(() => listServiceClients()),
   ]);
+  const realestate = serviceRes.ok && serviceRes.data.product === "realestate";
+  const canAdd = serviceRes.ok && realestate && serviceRes.data.baseUrl !== null;
 
   return (
     <>
@@ -70,7 +82,11 @@ export default async function OverviewTab({ id, tenant }: { id: string; tenant: 
                     </td>
                     <td className={td}>
                       {u.status === "active" && (
-                        <ResetPasswordControl email={u.email} action={resetAdminPasswordAction.bind(null, id, u.id)} />
+                        <ResetPasswordControl
+                          email={u.email}
+                          link={realestate}
+                          action={resetAdminPasswordAction.bind(null, id, u.id)}
+                        />
                       )}
                     </td>
                   </tr>
@@ -79,6 +95,7 @@ export default async function OverviewTab({ id, tenant }: { id: string; tenant: 
             </table>
           </div>
         )}
+        {canAdd && <AddAdminForm action={addTenantAdminAction.bind(null, id)} />}
       </section>
 
       <section className="flex flex-col gap-3">

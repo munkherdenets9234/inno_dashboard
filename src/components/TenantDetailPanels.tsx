@@ -2,7 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { ActionButton } from "@/components/Button";
-import type { ResetPasswordState, RotateKeyState } from "@/app/admin/(console)/tenants/actions";
+import AdminField, { fieldInputClass } from "@/components/AdminField";
+import type { AddAdminState, ResetPasswordState, RotateKeyState } from "@/app/admin/(console)/tenants/actions";
+import { validateAdminInvite } from "@/lib/product-service.mjs";
 
 type RotateAction = (prev: RotateKeyState) => Promise<RotateKeyState>;
 type ResetAction = (prev: ResetPasswordState) => Promise<ResetPasswordState>;
@@ -109,12 +111,20 @@ export function ServiceKeyRotate({ productName, action }: { productName: string;
   );
 }
 
-export function ResetPasswordControl({ email, action }: { email: string; action: ResetAction }) {
+export function ResetPasswordControl({
+  email,
+  action,
+  link = false,
+}: {
+  email: string;
+  action: ResetAction;
+  link?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(action, {});
   const [confirming, setConfirming] = useState(false);
 
   if (state.sent) {
-    return <p className="label text-paper">A reset code was emailed to {email}</p>;
+    return <p className="label text-paper">{link ? "A reset link was emailed." : `A reset code was emailed to ${email}`}</p>;
   }
 
   return (
@@ -126,15 +136,15 @@ export function ResetPasswordControl({ email, action }: { email: string; action:
             onClick={() => setConfirming(true)}
             className="label text-paper/55 hover:text-accent transition-colors"
           >
-            Reset password
+            {link ? "Resend invite / Send reset link" : "Reset password"}
           </button>
         </div>
       ) : (
         <>
-          <p className="text-sm text-paper/70">Email a password reset code to {email}?</p>
+          <p className="text-sm text-paper/70">{link ? `Email a reset link to ${email}?` : `Email a password reset code to ${email}?`}</p>
           <div className="flex items-center gap-3">
             <ActionButton type="submit" variant="outline" disabled={pending}>
-              {pending ? "Sending…" : "Yes, send code"}
+              {pending ? "Sending…" : link ? "Yes, send link" : "Yes, send code"}
             </ActionButton>
             <button
               type="button"
@@ -148,6 +158,51 @@ export function ResetPasswordControl({ email, action }: { email: string; action:
         </>
       )}
       {state.error && <p className="label text-accent">{state.error}</p>}
+    </form>
+  );
+}
+
+type AddAdminAction = (prev: AddAdminState, formData: FormData) => Promise<AddAdminState>;
+
+export function AddAdminForm({ action }: { action: AddAdminAction }) {
+  const [state, formAction, pending] = useActionState(action, {});
+  const [clientError, setClientError] = useState<string | null>(null);
+
+  // Convenience only; the server action validates again.
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const fd = new FormData(e.currentTarget);
+    const v = validateAdminInvite({ name: fd.get("name"), email: fd.get("email") });
+    if (v.error !== undefined) {
+      e.preventDefault();
+      setClientError(v.error);
+    } else {
+      setClientError(null);
+    }
+  }
+
+  const error = clientError ?? state.error;
+
+  return (
+    <form
+      action={formAction}
+      onSubmit={onSubmit}
+      noValidate
+      className="border border-paper/10 p-5 flex flex-col gap-3"
+    >
+      <span className="label text-paper/70">Add tenant admin</span>
+      <div className="flex gap-3 flex-wrap items-end">
+        <AdminField label="Name" htmlFor="admin-name" className="min-w-56">
+          <input id="admin-name" name="name" maxLength={100} autoComplete="off" className={fieldInputClass} />
+        </AdminField>
+        <AdminField label="Email" htmlFor="admin-email" className="min-w-72">
+          <input id="admin-email" name="email" type="email" maxLength={254} autoComplete="off" className={fieldInputClass} />
+        </AdminField>
+        <ActionButton type="submit" disabled={pending}>
+          {pending ? "Sending…" : "Add and send invite"}
+        </ActionButton>
+      </div>
+      {error && <p className="label text-accent">{error}</p>}
+      {!error && state.sentTo && <p className="label text-paper">Invite sent to {state.sentTo}.</p>}
     </form>
   );
 }
