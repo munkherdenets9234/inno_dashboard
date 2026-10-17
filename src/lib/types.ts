@@ -428,6 +428,14 @@ export interface InvoicePreview {
   html: string;
 }
 
+// GET .../onboarding: whether the welcome email was sent, and what blocks it.
+export interface OnboardingStatus {
+  sent_at: string | null;
+  sent_to: string;
+  can_send: boolean;
+  blockers: string[];
+}
+
 export interface Invoice {
   id: string;
   tenant_id: string;

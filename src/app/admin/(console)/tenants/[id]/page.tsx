@@ -5,6 +5,7 @@ import { getTenantById } from "@/lib/data/tenants";
 import OverviewTab from "@/components/tenant-tabs/OverviewTab";
 import SubscriptionTab from "@/components/tenant-tabs/SubscriptionTab";
 import DomainsTab from "@/components/tenant-tabs/DomainsTab";
+import OnboardingTab from "@/components/tenant-tabs/OnboardingTab";
 import CostingTab from "@/components/tenant-tabs/CostingTab";
 import PackagesTab from "@/components/tenant-tabs/PackagesTab";
 import LeadsTab from "@/components/tenant-tabs/LeadsTab";
@@ -14,6 +15,7 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "subscription", label: "Subscription" },
   { key: "domains", label: "Domains" },
+  { key: "onboarding", label: "Onboarding" },
   { key: "costing", label: "Costing" },
   { key: "packages", label: "Packages" },
   { key: "leads", label: "Leads" },
@@ -80,6 +82,7 @@ export default async function TenantDetailPage({
       {tab === "overview" && <OverviewTab id={id} tenant={tenant} />}
       {tab === "subscription" && <SubscriptionTab id={id} />}
       {tab === "domains" && <DomainsTab id={id} />}
+      {tab === "onboarding" && <OnboardingTab id={id} />}
       {tab === "costing" && <CostingTab id={id} />}
       {tab === "packages" && <PackagesTab id={id} />}
       {tab === "leads" && <LeadsTab id={id} searchParams={sp} />}
