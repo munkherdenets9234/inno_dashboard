@@ -6,6 +6,8 @@ import { apiDelete, apiPost, apiPut, ApiError } from "@/lib/api/client";
 import { dsRequest } from "@/lib/api/digitalservice";
 import { getInvoicePreview } from "@/lib/data/costing";
 import { getOnboardingPreview } from "@/lib/data/onboarding";
+import { resolveTenantService } from "@/lib/data/tenant-detail";
+import { validateAdminInvite } from "@/lib/product-service.mjs";
 import { requireToken } from "@/lib/auth/session";
 import { validBillingDay } from "@/lib/subscription";
 import type { InvoiceEditInput, LineDiscountInput, LocaleText, ProjectImage, ProjectMetric } from "@/lib/types";
@@ -737,11 +739,15 @@ export async function resetAdminPasswordAction(
   userId: string,
 ): Promise<ResetPasswordState> {
   const token = await requireToken();
+  let realestate = false;
   try {
+    const service = await resolveTenantService(tenantId, token);
+    realestate = service.product === "realestate";
     await dsRequest(
       "POST",
       `/platform/tenants/${encodeURIComponent(tenantId)}/admin-users/${encodeURIComponent(userId)}/reset-password`,
       token,
+      { service },
     );
   } catch (err) {
     unstable_rethrow(err);
@@ -749,7 +755,44 @@ export async function resetAdminPasswordAction(
       if (err.status === 503) return { error: "Email isn't set up on this server" };
       return { error: err.message };
     }
-    return { error: "Failed to send the reset code." };
+    return { error: realestate ? "Failed to send the reset link." : "Failed to send the reset code." };
   }
   return { sent: true };
+}
+
+export interface AddAdminState {
+  error?: string;
+  sentTo?: string;
+}
+
+// Real state tenants only: the form is not rendered otherwise, and the service
+// is re-resolved here. Contract: 201 {user, sent:true}; 409 duplicate; 503 no
+// email. Raw upstream text is never returned.
+export async function addTenantAdminAction(
+  tenantId: string,
+  _prev: AddAdminState,
+  formData: FormData,
+): Promise<AddAdminState> {
+  const token = await requireToken();
+  const v = validateAdminInvite({ name: formData.get("name"), email: formData.get("email") });
+  if (v.error !== undefined) return { error: v.error };
+  try {
+    const service = await resolveTenantService(tenantId, token);
+    if (service.product !== "realestate" || !service.baseUrl) {
+      return { error: "Adding admins is not available for this tenant." };
+    }
+    await dsRequest("POST", `/platform/tenants/${encodeURIComponent(tenantId)}/admin-users`, token, {
+      service,
+      body: { name: v.name, email: v.email },
+    });
+  } catch (err) {
+    unstable_rethrow(err);
+    if (err instanceof ApiError) {
+      if (err.status === 409) return { error: "An account with that email already exists." };
+      if (err.status === 503) return { error: "Email isn't set up on this server, so the invite could not be sent." };
+    }
+    return { error: "Failed to add the admin. Please try again." };
+  }
+  revalidatePath(`/admin/tenants/${tenantId}`);
+  return { sentTo: v.email };
 }

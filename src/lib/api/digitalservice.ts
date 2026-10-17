@@ -11,17 +11,35 @@ export function digitalserviceBaseUrl(): string | null {
   return url ? url.replace(/\/+$/, "") : null;
 }
 
+// A product service chosen by productServiceFor (src/lib/product-service.mjs).
+export interface ProductService {
+  product: "realestate" | "digitalservice";
+  baseUrl: string | null;
+}
+
+// Defaults to digitalservice so existing callers are unchanged.
 export async function dsRequest<T>(
   method: "GET" | "POST",
   path: string,
   token: string,
+  opts: { service?: ProductService; body?: unknown } = {},
 ): Promise<T> {
-  const base = digitalserviceBaseUrl();
-  if (!base) throw new ApiError(503, "DIGITALSERVICE_URL is not set");
+  const service = opts.service;
+  const base = service ? service.baseUrl : digitalserviceBaseUrl();
+  const name = service?.product === "realestate" ? "realestate service" : "digitalservice";
+  if (!base) {
+    throw new ApiError(
+      503,
+      service?.product === "realestate" ? "REALSTATE_SERVICE_URL is not set" : "DIGITALSERVICE_URL is not set",
+    );
+  }
 
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
     cache: "no-store",
   });
   const json = (await res.json().catch(() => null)) as ApiEnvelope<T> | null;
@@ -32,7 +50,7 @@ export async function dsRequest<T>(
   if (res.status === 401) {
     throw new ApiError(
       401,
-      "digitalservice rejected the operator token. Check that its TENANTCORE_PUBLIC_KEY matches this tenantcore.",
+      `${name} rejected the operator token. Check that its TENANTCORE_PUBLIC_KEY matches this tenantcore.`,
     );
   }
 
