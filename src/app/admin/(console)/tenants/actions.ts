@@ -5,6 +5,7 @@ import { unstable_rethrow } from "next/navigation";
 import { apiDelete, apiPost, apiPut, ApiError } from "@/lib/api/client";
 import { dsRequest } from "@/lib/api/digitalservice";
 import { getInvoicePreview } from "@/lib/data/costing";
+import { getOnboardingPreview } from "@/lib/data/onboarding";
 import { requireToken } from "@/lib/auth/session";
 import { validBillingDay } from "@/lib/subscription";
 import type { InvoiceEditInput, LineDiscountInput, LocaleText, ProjectImage, ProjectMetric } from "@/lib/types";
@@ -638,6 +639,45 @@ export async function previewInvoiceAction(tenantId: string, invoiceId: string):
     unstable_rethrow(err);
     return { error: err instanceof ApiError ? err.message : "Failed to render the preview." };
   }
+}
+
+// ── Onboarding email ──────────────────────────────────────────────────────
+//
+// The recipient is the tenant's contact email, resolved by tenantcore. Only
+// the optional note and the resend flag are sent. The note is never logged.
+
+// The service validates the note as a single line, so fold newlines and runs
+// of whitespace into single spaces (never lengthens the text).
+function oneLineNote(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim();
+}
+
+export async function previewOnboardingAction(tenantId: string, note: string): Promise<InvoicePreviewState> {
+  try {
+    const p = await getOnboardingPreview(tenantId, oneLineNote(note));
+    return { subject: p.subject, html: p.html };
+  } catch (err) {
+    unstable_rethrow(err);
+    return { error: err instanceof ApiError ? err.message : "Failed to render the preview." };
+  }
+}
+
+export async function sendOnboardingAction(
+  tenantId: string,
+  resend: boolean,
+  _prev: CostingFormState,
+  formData: FormData,
+): Promise<CostingFormState> {
+  const token = await requireToken();
+  const note = oneLineNote(String(formData.get("note") ?? ""));
+  try {
+    await apiPost(`/admin/tenants/${tenantId}/onboarding/send`, { note, resend }, token);
+  } catch (err) {
+    unstable_rethrow(err);
+    return { error: err instanceof ApiError ? err.message : "Failed to send the onboarding email." };
+  }
+  revalidatePath(`/admin/tenants/${tenantId}`);
+  return { saved: true };
 }
 
 // ── Detail page: key rotation and admin password reset ────────────────────
